@@ -1,4 +1,4 @@
-package oddjet;
+package org.fenixedu.oddjet;
 
 public class TableCoordenate {
     private int c;

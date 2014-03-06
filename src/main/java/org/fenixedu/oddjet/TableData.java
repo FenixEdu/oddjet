@@ -1,4 +1,4 @@
-package oddjet;
+package org.fenixedu.oddjet;
 
 import java.util.ArrayList;
 import java.util.Iterator;

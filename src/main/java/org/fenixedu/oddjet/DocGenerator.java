@@ -1,4 +1,4 @@
-package oddjet;
+package org.fenixedu.oddjet;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -7,9 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import oddjet.TableParameters.FillDirection;
-import oddjet.TableParameters.FillType;
-
+import org.fenixedu.oddjet.TableParameters.FillDirection;
+import org.fenixedu.oddjet.TableParameters.FillType;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
 import org.odftoolkit.odfdom.dom.element.table.TableTableCellElementBase;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;

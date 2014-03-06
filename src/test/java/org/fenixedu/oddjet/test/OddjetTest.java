@@ -1,12 +1,20 @@
+package org.fenixedu.oddjet.test;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import oddjet.DocGenerator;
-import oddjet.TableData;
+import org.fenixedu.oddjet.DocGenerator;
+import org.fenixedu.oddjet.TableData;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class Test1 {
-    public static void main(String[] args) throws Exception {
+@RunWith(JUnit4.class)
+public class OddjetTest {
+
+    @Test
+    public void doIt() throws Exception {
         HashMap<String, String> ufields = new HashMap<String, String>();
         ufields.put("title1", "Person Registry");
         ufields.put("title2", "Courses Registry");
