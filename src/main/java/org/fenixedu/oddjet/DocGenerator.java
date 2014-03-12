@@ -1,10 +1,12 @@
 package org.fenixedu.oddjet;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.fenixedu.oddjet.TableParameters.FillDirection;
@@ -27,22 +29,21 @@ public class DocGenerator {
     //TODO support itemization frames (bullets & numbers)
     //TODO build a critical error/error/warning/message system to organize to improve the prints
 
-    public static void generateDocument(String templatePath, String instancePath, Map<String, TableData> tableDataSources,
-            Map<String, String> ufields) throws Exception {
-        TextDocument document = TextDocument.loadDocument(templatePath);
-        fillUserFields(document, ufields);
-        fillTables(document, tableDataSources);
+    public static void generateDocument(Template template, String instancePath) throws Exception {
+        TextDocument document = TextDocument.loadDocument(template.getOdtFilePath());
+        fillUserFields(document, template.getParameters(), template.getLocale());
+        fillTables(document, template.getTableDataSources(), template.getLocale());
         document.save(instancePath);
         document.close();
     }
 
-    private static void fillUserFields(TextDocument document, Map<String, String> ufields) {
+    private static void fillUserFields(TextDocument document, Map<String, Object> ufields, Locale locale) {
         for (String key : ufields.keySet()) {
             VariableField var = document.getVariableFieldByName(key);
             if (var != null) {
                 switch (var.getFieldType()) {
                 case USER_VARIABLE_FIELD:
-                    var.updateField(ufields.get(key), null);
+                    var.updateField(translate(ufields.get(key), locale), null);
                     break;
                 default:
                     System.err.println("The variable field type of '" + key + "', " + var.getFieldType()
@@ -54,7 +55,7 @@ public class DocGenerator {
         }
     }
 
-    private static void fillTables(TextDocument document, Map<String, TableData> tableDataSources) {
+    private static void fillTables(TextDocument document, Map<String, TableData> tableDataSources, Locale locale) {
         for (Table table : document.getTableList()) {
             TableSpecification ts = TableSpecification.build(table.getTableName(), tableDataSources);
             if (ts != null) {
@@ -168,12 +169,12 @@ public class DocGenerator {
                             Paragraph paragraph = cell.getParagraphByReverseIndex(0, false);
                             if (paragraph != null) {
                                 paragraph.getOdfElement().setTextContent(
-                                        paragraph.getTextContent() + dataObject.get(j).toString());
+                                        paragraph.getTextContent() + translate(dataObject.get(j), locale));
                                 break;
                             }
                         case ADD:
                             // Add a new paragraph with the data's text
-                            cell.addParagraph(dataObject.get(j).toString());
+                            cell.addParagraph(translate(dataObject.get(j), locale));
                             break;
                         default:
                             System.err.println("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name()
@@ -356,6 +357,15 @@ public class DocGenerator {
             }
         }
         return categoryOrder;
+    }
+
+    private static String translate(Object o, Locale locale) {
+        try {
+            Method m = o.getClass().getMethod("getContent", Locale.class);
+            o = m.invoke(o, locale);
+        } catch (Exception e) {
+        }
+        return o.toString();
     }
 
 }
