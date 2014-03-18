@@ -21,6 +21,7 @@ import org.odftoolkit.simple.table.Cell;
 import org.odftoolkit.simple.table.CellRange;
 import org.odftoolkit.simple.table.Table;
 import org.odftoolkit.simple.text.Paragraph;
+import org.w3c.dom.NodeList;
 
 public class DocGenerator {
     //TODO refactor code some more
@@ -37,22 +38,24 @@ public class DocGenerator {
         document.close();
     }
 
-    private static void fillUserFields(TextDocument document, Map<String, Object> ufields, Locale locale) {
-        for (String key : ufields.keySet()) {
-            VariableField var = document.getVariableFieldByName(key);
-            if (var != null) {
-                switch (var.getFieldType()) {
-                case USER_VARIABLE_FIELD:
-                    var.updateField(translate(ufields.get(key), locale), null);
-                    break;
-                default:
-                    System.err.println("The variable field type of '" + key + "', " + var.getFieldType()
-                            + ", is currently not supported.");
+    private static void fillUserFields(TextDocument document, Map<String, Object> parameters, Locale locale) {
+        try {
+            NodeList nodes = document.getContentRoot().getElementsByTagName("text:user-field-decl");
+            for (int i = 0; i < nodes.getLength(); i++) {
+                String userFieldName = nodes.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
+                VariableField var = document.getVariableFieldByName(userFieldName);
+                Object value = parameters.get(userFieldName);
+                if (value != null) {
+                    var.updateField(translate(value, locale), null);
+                } else {
+                    System.err.println("No matching parameter was found for the user field named '" + userFieldName
+                            + "'. Assuming the field is static.");
                 }
-            } else {
-                System.err.println("the variable field named '" + key + "' was not found in the document.");
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
     }
 
     private static void fillTables(TextDocument document, Map<String, TableData> tableDataSources, Locale locale) {
