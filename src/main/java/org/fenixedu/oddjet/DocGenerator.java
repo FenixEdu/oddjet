@@ -100,13 +100,13 @@ public class DocGenerator {
                 if (tp.getFillDirection() == FillDirection.VERTICAL) {
                     startX = hCol;
                     startY = hRow;
-                    tableDimX = table.getRowByIndex(0).getCellCount();
-                    tableDimY = table.getColumnByIndex(0).getCellCount();
+                    tableDimX = table.getRowByIndex(hRow).getCellCount();
+                    tableDimY = table.getColumnByIndex(hCol).getCellCount();
                 } else {
                     startX = hRow;
                     startY = hCol;
-                    tableDimX = table.getColumnByIndex(0).getCellCount();
-                    tableDimY = table.getRowByIndex(0).getCellCount();
+                    tableDimX = table.getColumnByIndex(hCol).getCellCount();
+                    tableDimY = table.getRowByIndex(hRow).getCellCount();
                 }
                 tableSpaceX = startY > 0 ? tableDimX - startX : -1;
                 limitX = data.size();
