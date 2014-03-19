@@ -7,8 +7,9 @@ import java.util.Map;
 
 abstract public class Template implements Serializable {
 
-    final private String odtFilePath;
+    private String odtFilePath;
     private Locale locale;
+    static final public String ATTRIBUTE_ACCESS_REGEX = "\\.";
     final private Map<String, Object> parameters = new HashMap<String, Object>();
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
 

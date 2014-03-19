@@ -1,5 +1,6 @@
 package org.fenixedu.oddjet;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,23 +40,49 @@ public class DocGenerator {
     }
 
     private static void fillUserFields(TextDocument document, Map<String, Object> parameters, Locale locale) {
+        NodeList nodes;
         try {
-            NodeList nodes = document.getContentRoot().getElementsByTagName("text:user-field-decl");
-            for (int i = 0; i < nodes.getLength(); i++) {
-                String userFieldName = nodes.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
-                VariableField var = document.getVariableFieldByName(userFieldName);
-                Object value = parameters.get(userFieldName);
-                if (value != null) {
-                    var.updateField(translate(value, locale), null);
-                } else {
-                    System.err.println("No matching parameter was found for the user field named '" + userFieldName
-                            + "'. Assuming the field is static.");
-                }
-            }
+            nodes = document.getContentRoot().getElementsByTagName("text:user-field-decl");
         } catch (Exception e) {
+            System.err.println("Failed to create the file DOM while filling the user fields.");
             e.printStackTrace();
+            return;
         }
+        for (int i = 0; i < nodes.getLength(); i++) {
+            String userFieldName = nodes.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
+            String[] nameComponents = userFieldName.split(Template.ATTRIBUTE_ACCESS_REGEX);
+            Object obj = parameters.get(nameComponents[0]);
+            VariableField var = document.getVariableFieldByName(userFieldName);
+            if (obj != null) {
+                for (int c = 1; c < nameComponents.length; c++) {
+                    if (!nameComponents[c].isEmpty()) {
+                        String getterName =
+                                "get" + nameComponents[c].substring(0, 1).toUpperCase() + nameComponents[c].substring(1);
+                        try {
+                            Method getter = obj.getClass().getMethod(getterName);
+                            obj = getter.invoke(obj);
+                        } catch (NoSuchMethodException nsme) {
+                            System.err.println("No matching getter was found for the attribute named '" + nameComponents[c]
+                                    + "' while trying to evaluate '" + userFieldName + "'.");
+                        } catch (SecurityException se) {
+                            System.err.println("Non-public getter for the attribute named '" + nameComponents[c]
+                                    + "' found while trying to evaluate '" + userFieldName + "'.");
+                        } catch (IllegalAccessException iae) {
+                            System.err.println("The getter for attribute '" + nameComponents[c] + "' could not be accessed.");
 
+                        } catch (InvocationTargetException ite) {
+                            System.err.println("Exception ocurred in the getter for attribute '" + nameComponents[c]
+                                    + "' while trying to evaluate '" + userFieldName + "':");
+                            ite.printStackTrace();
+                        }
+                    }
+                }
+                var.updateField(translate(obj, locale), null);
+            } else {
+                System.err.println("No matching parameter was found for the user field named '" + userFieldName
+                        + "'. Assuming the field is static.");
+            }
+        }
     }
 
     private static void fillTables(TextDocument document, Map<String, TableData> tableDataSources, Locale locale) {
@@ -363,6 +390,9 @@ public class DocGenerator {
     }
 
     private static String translate(Object o, Locale locale) {
+        if (o == null) {
+            return "";
+        }
         try {
             Method m = o.getClass().getMethod("getContent", Locale.class);
             o = m.invoke(o, locale);
