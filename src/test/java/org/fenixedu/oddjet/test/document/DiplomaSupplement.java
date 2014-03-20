@@ -1,11 +1,13 @@
 package org.fenixedu.oddjet.test.document;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
-import org.fenixedu.oddjet.TableData;
+import org.fenixedu.oddjet.ListTableData;
+import org.fenixedu.oddjet.PositionalTableData;
 import org.fenixedu.oddjet.Template;
+import org.fenixedu.oddjet.test.bean.Observation;
+import org.fenixedu.oddjet.test.bean.ProgramCurricularUnit;
 
 public class DiplomaSupplement extends Template {
 
@@ -44,53 +46,21 @@ public class DiplomaSupplement extends Template {
         addParameter("study_regime", "no");
         addParameter("program_requirements", "nenhuns");
 
-        //here is a reason to enable tables where the categories names would be used to access the objects' atributes.
-        HashMap<String, List<Object>> tdata = new HashMap<>();
-        List<Object> year = new ArrayList<>();
-        year.add("2000/01");
-        List<Object> unit = new ArrayList<>();
-        unit.add("Mais Materiais e cenas");
-        List<Object> type = new ArrayList<>();
-        type.add("normal");
-        List<Object> duration = new ArrayList<>();
-        duration.add("semestre");
-        List<Object> credits = new ArrayList<>();
-        credits.add("6.0");
-        List<Object> oclassif = new ArrayList<>();
-        oclassif.add("16");
-        List<Object> cclassif = new ArrayList<>();
-        cclassif.add("16");
-        List<Object> obs = new ArrayList<>();
-        obs.add("1)");
-        tdata.put("year", year);
-        tdata.put("curricular unit", unit);
-        tdata.put("type", type);
-        tdata.put("duration", duration);
-        tdata.put("credits", credits);
-        tdata.put("obtained classification", oclassif);
-        tdata.put("converted classification", cclassif);
-        tdata.put("observations", obs);
-        addTableDataSource("program", new TableData(tdata));
+        List<Object> program = new ArrayList<>();
+        Observation obs = new Observation("1)", "Waka Waka");
+        program.add(new ProgramCurricularUnit("2000/01", "Mais Materiais e cenas", "normal", "semestre", 6.0, 16, 16, obs.getId()));
+        addTableDataSource("program", new ListTableData(program));
 
-        tdata = new HashMap<>();
-        List<Object> id = new ArrayList<>();
-        id.add("1)");
-        List<Object> label = new ArrayList<>();
-        label.add("Waka Waka");
-        tdata.put("id", id);
-        tdata.put("label", label);
-        addTableDataSource("program_labels", new TableData(tdata));
+        List<Object> observations = new ArrayList<>();
+        observations.add(obs);
+        addTableDataSource("program_observations", new ListTableData(observations));
 
-        addParameter(
-                "classif_system_explanation",
-                "É tipo uma escala de A a E com percentagens correspondentes e assim.\nVou saltar esta tabela, no fundo não interessa muito para o teste.");
+        addParameter("classif_system_explanation", "É tipo uma escala de A a E com percentagens correspondentes e assim.");
 
-        tdata = new HashMap<>();
-        List<Object> percentage = new ArrayList<>();
-        List<Object> ECTSScale = new ArrayList<>();
-        tdata.put("percentage", percentage);
-        tdata.put("ECTS scale", ECTSScale);
-        addTableDataSource("classif_system", new TableData(tdata));
+        String[][] classifSystem =
+                { { "50%", "55%", "60%", "65%", "70%", "75%", "80%", "85%", "90%", "95%", "100%" },
+                        { "D", "D", "D", "C", "C", "C", "B", "B", "B", "A", "A" } };
+        addTableDataSource("classif_system", new PositionalTableData(classifSystem));
 
         addParameter("final_average", "16");
         addParameter("final_average_qualitative", "B");
@@ -100,11 +70,8 @@ public class DiplomaSupplement extends Template {
         addParameter("higher_study_level_access", "Yup");
         addParameter("professional_statute", "Operador de Caixa");
 
-        tdata = new HashMap<>();
-        List<Object> activities = new ArrayList<>();
-        activities.add("Beer Pong");
-        tdata.put("activities", activities);
-        addTableDataSource("extracurricular_activities", new TableData(tdata));
+        String[][] activities = { { "Beer Pong" } };
+        addTableDataSource("extracurricular_activities", new PositionalTableData(activities));
 
         addParameter("authenticator_name", "Tonecas");
         addParameter("authenticator_position", "Palhaço");

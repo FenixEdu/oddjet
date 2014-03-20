@@ -3,7 +3,6 @@ package org.fenixedu.oddjet;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -121,7 +120,7 @@ public class DocGenerator {
                 List<List<Object>> data;
                 if (tp.getFillType() == FillType.CATEGORICAL) {
                     List<String> categoryOrder = null;
-                    categoryOrder = getCategoryOrder(table, td.getData().keySet(), headers, tp.getFillDirection());
+                    categoryOrder = getCategoryOrder(table, headers, tp.getFillDirection());
                     data = td.buildPositionalData(categoryOrder);
                 } else {
                     data = td.buildPositionalData();
@@ -152,11 +151,11 @@ public class DocGenerator {
                 }
 
                 for (X = startX, i = 0; i < limitX; i++, X++) {
-                    List<Object> dataObject = data.get(i);
+                    List<Object> dataCategory = data.get(i);
 
                     tableSpaceY = startX > 0 ? tableDimY - startY : -1;
                     boolean overflowReported = false;
-                    limitY = dataObject.size();
+                    limitY = dataCategory != null ? dataCategory.size() : 0;
                     if (tableSpaceY > 0) {
                         if (tableSpaceY < limitY) {
                             limitY = tableSpaceY;
@@ -199,12 +198,12 @@ public class DocGenerator {
                             Paragraph paragraph = cell.getParagraphByReverseIndex(0, false);
                             if (paragraph != null) {
                                 paragraph.getOdfElement().setTextContent(
-                                        paragraph.getTextContent() + translate(dataObject.get(j), locale));
+                                        paragraph.getTextContent() + translate(dataCategory.get(j), locale));
                                 break;
                             }
                         case ADD:
                             // Add a new paragraph with the data's text
-                            cell.addParagraph(translate(dataObject.get(j), locale));
+                            cell.addParagraph(translate(dataCategory.get(j), locale));
                             break;
                         default:
                             System.err.println("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name()
@@ -357,33 +356,30 @@ public class DocGenerator {
         return cellStyles;
     }
 
-    private static List<String> getCategoryOrder(Table table, Collection<String> categories, TableCoordenate headers,
-            FillDirection fdir) {
+    private static List<String> getCategoryOrder(Table table, TableCoordenate headers, FillDirection fdir) {
         List<String> categoryOrder = new ArrayList<String>();
-        CellRange formulaRange = null;
+        CellRange categoryRange = null;
         if (fdir == FillDirection.VERTICAL) {
-            formulaRange =
+            categoryRange =
                     table.getCellRangeByPosition(headers.getColumn(), headers.getRow(), table.getColumnCount() - 1,
                             headers.getRow());
         } else {
-            formulaRange =
+            categoryRange =
                     table.getCellRangeByPosition(headers.getColumn(), headers.getRow(), headers.getColumn(),
                             table.getRowCount() - 1);
         }
-        for (int i = 0; i < formulaRange.getColumnNumber(); i++) {
-            for (int j = 0; j < formulaRange.getRowNumber(); j++) {
-                Cell cell = formulaRange.getCellByPosition(i, j);
-                Paragraph formula_paragraph = cell.getParagraphByIndex(0, false);
-                String formula = null;
-                if (formula_paragraph == null || (formula = formula_paragraph.getTextContent().trim()).isEmpty()) {
+        for (int i = 0; i < categoryRange.getColumnNumber(); i++) {
+            for (int j = 0; j < categoryRange.getRowNumber(); j++) {
+                Cell cell = categoryRange.getCellByPosition(i, j);
+                Paragraph categoryParagraph = cell.getParagraphByIndex(0, false);
+                String category = null;
+                if (categoryParagraph == null || (category = categoryParagraph.getTextContent().trim()).isEmpty()) {
                     System.err.println("Data category missing at (" + i + "," + j + ") in table '" + table.getTableName() + "'.");
-                } else if (!categories.contains(formula)) {
-                    System.err.println("Unknown data category '" + formula + "' at (" + i + "," + j + ") in table '"
-                            + table.getTableName() + "'.");
+                    categoryOrder.add(null);
                 } else {
-                    cell.removeParagraph(formula_paragraph);
-                }
-                categoryOrder.add(formula);
+                    cell.removeParagraph(categoryParagraph);
+                    categoryOrder.add(category);
+                };
             }
         }
         return categoryOrder;

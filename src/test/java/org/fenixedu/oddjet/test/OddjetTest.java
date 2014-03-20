@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.fenixedu.oddjet.CategoricalTableData;
 import org.fenixedu.oddjet.DocGenerator;
-import org.fenixedu.oddjet.TableData;
 import org.fenixedu.oddjet.Template;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,8 +69,8 @@ public class OddjetTest {
                 tdata2.put("price", price);
                 tdata2.put("exam", exam);
 
-                addTableDataSource("person", new TableData(tdata));
-                addTableDataSource("courses", new TableData(tdata2));
+                addTableDataSource("person", new CategoricalTableData(tdata));
+                addTableDataSource("courses", new CategoricalTableData(tdata2));
             }
 
             @Override

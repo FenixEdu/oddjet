@@ -1,11 +1,10 @@
 package org.fenixedu.oddjet;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-abstract public class Template implements Serializable {
+abstract public class Template {
 
     private String odtFilePath;
     private Locale locale;
