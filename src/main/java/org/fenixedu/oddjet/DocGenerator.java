@@ -11,12 +11,14 @@ import java.util.Map;
 
 import org.fenixedu.oddjet.TableParameters.FillDirection;
 import org.fenixedu.oddjet.TableParameters.FillType;
+import org.fenixedu.oddjet.TableParameters.LastBorderOrigin;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
-import org.odftoolkit.odfdom.dom.element.table.TableTableCellElementBase;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
 import org.odftoolkit.simple.TextDocument;
 import org.odftoolkit.simple.common.field.Fields;
 import org.odftoolkit.simple.common.field.VariableField;
+import org.odftoolkit.simple.style.Border;
+import org.odftoolkit.simple.style.StyleTypeDefinitions.CellBordersType;
 import org.odftoolkit.simple.table.Cell;
 import org.odftoolkit.simple.table.CellRange;
 import org.odftoolkit.simple.table.Table;
@@ -94,27 +96,27 @@ public class DocGenerator {
                 TableCoordenate styleRCoord = tp.getStyleRCoord();
                 int hCol = headers.getColumn();
                 int hRow = headers.getRow();
+
                 // Check if table has necessary cells predefined
                 if (tp.getFillType() != FillType.CATEGORICAL && (hRow >= table.getRowCount() || hCol >= table.getColumnCount())) {
                     System.err.println("Table dimensions of " + table.getTableName()
                             + " do not allow the specification of the semantic data.");
                     continue;
                 }
-                if (styleRCoord != null
-                        && (hRow + styleRCoord.getRow() > table.getRowCount() || hCol + styleRCoord.getColumn() > table
-                                .getColumnCount())) {
+                if ((styleRCoord != null && (hRow + styleRCoord.getRow() > table.getRowCount() || hCol + styleRCoord.getColumn() > table
+                        .getColumnCount()))
+                        || (tp.getLastBorderOrigin() == LastBorderOrigin.BODY && (table.getRowCount() == hRow || table
+                                .getColumnCount() == hCol))) {
                     System.err.println("Table dimensions of " + table.getTableName()
-                            + " are not suficient to specify the table format.");
+                            + " are not suficient to specify the table cell format.");
                     continue;
                 }
-                // Collect all the styles of the predefined style cells previously to adding any new cells.
+
+                // Collect all the styles of the predefined style cells before adding any new cells.
                 //      This is only necessary due to a quirk in the simpleAPI where creating a new column/row changes the style of the cell
                 //      in the previous column/row.
-                Map<String, Map<OdfStyleProperty, String>> cellStyles =
-                        styleRCoord != null ? collectCellStyles(table, headers, styleRCoord) : null;
-
-                // This is broken due to the borders in the simpleAPI not accounting for border="none"
-                // List<Border> autoBorders = tp.shouldToggleLastBorder() ? collectAutoBorders(table, headers, tp.getFillDirection()) : null;
+                Map<String, String> cellStyles = collectCellStyles(table, hCol, hRow, styleRCoord);
+                Border lastBorder = collectLastBorder(table, hCol, hRow, tp.getLastBorderOrigin(), tp.getLastBorderOriginType());
 
                 // Get the positional version of the data ( using the category order in the template table in the semantic case )
                 List<List<Object>> data;
@@ -169,7 +171,7 @@ public class DocGenerator {
                         Cell cell =
                                 tp.getFillDirection() == FillDirection.VERTICAL ? table.getCellByPosition(X, Y) : table
                                         .getCellByPosition(Y, X);
-                        switch (tp.getFillBehavior()) { // Fall through here allows cleaner code but it's a little less efficient
+                        switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
                         case STEP:
                             // If there is a paragraph then don't do anything, else fall through
                             if (cell.getParagraphByIndex(0, true) != null) {
@@ -195,10 +197,18 @@ public class DocGenerator {
                             }
                         case APPEND:
                             // Get the last paragraph and if it exists add the data's text to it, else fall through
-                            Paragraph paragraph = cell.getParagraphByReverseIndex(0, false);
-                            if (paragraph != null) {
-                                paragraph.getOdfElement().setTextContent(
-                                        paragraph.getTextContent() + translate(dataCategory.get(j), locale));
+                            Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
+                            if (lastParagraph != null) {
+                                lastParagraph.getOdfElement().setTextContent(
+                                        lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
+                                break;
+                            }
+                        case PREPEND:
+                            // Get the first paragraph and if it exists add the data's text to it, else fall through
+                            Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
+                            if (firstParagraph != null) {
+                                firstParagraph.getOdfElement().setTextContent(
+                                        translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
                                 break;
                             }
                         case ADD:
@@ -235,99 +245,103 @@ public class DocGenerator {
                                 styleCellCoord = new TableCoordenate(i - jumps * sCol, j - jumps * sRow);
                             }
                             // Copy style cell style properties
-                            Map<OdfStyleProperty, String> properties = cellStyles.get(styleCellCoord.toString());
-                            cell.getOdfElement().setProperties(properties);
-                            // Remove any extra default properties
-                            for (OdfStyleProperty p : cell.getOdfElement().getStyleFamily().getProperties()) {
-                                if (!properties.containsKey(p)) {
-                                    cell.getOdfElement().removeProperty(p);
-                                }
-                            }
+                            cell.setCellStyleName(cellStyles.get(styleCellCoord.toString()));
                             // Copy paragraph style
                             Cell styleCell = table.getCellByPosition(styleCellCoord.getColumn(), styleCellCoord.getRow());
                             Iterator<Paragraph> pit = cell.getParagraphIterator();
                             Iterator<Paragraph> spit = styleCell.getParagraphIterator();
                             while (pit.hasNext() && spit.hasNext()) {
+                                //pit.next().setStyleName(spit.next().getStyleName()); //FIXME Not working, figure out why...
                                 copyStyle(spit.next().getOdfElement(), pit.next().getOdfElement());
                             }
                         }
                     }
                 }
-                // This is broken due to the borders in the simpleAPI not accounting for border="none"
-//                if (autoBorders != null) {
-//                    CellBordersType lastBorderType;
-//                    CellRange cellRange = null;
-//                    if (tp.getFillDirection() == FillDirection.VERTICAL) {
-//                        lastBorderType = CellBordersType.BOTTOM;
-//                        cellRange =
-//                                table.getCellRangeByPosition(headers.getColumn(), table.getRowCount() - 1,
-//                                        table.getColumnCount() - 1, table.getRowCount() - 1);
-//                    } else {
-//                        lastBorderType = CellBordersType.LEFT;
-//                        cellRange =
-//                                table.getCellRangeByPosition(table.getColumnCount() - 1, headers.getRow(),
-//                                        table.getColumnCount() - 1, table.getRowCount() - 1);
-//                    }
-//                    int b = 0;
-//                    for (i = 0; i < cellRange.getColumnNumber(); i++) {
-//                        for (j = 0; j < cellRange.getRowNumber(); j++) {
-//                            Cell cell = cellRange.getCellByPosition(i, j);
-//                            if (cell.getBorder(lastBorderType) != Border.NONE) {
-//                                cell.setBorders(lastBorderType, autoBorders.get(b));
-//                            } else {
-//                                cell.setBorders(lastBorderType, Border.NONE);
-//                            }
-//                            b++;
-//                        }
-//                    }
-//                }
+
+                //Change the last border of the table
+                if (lastBorder != null) {
+                    CellBordersType lastBorderType;
+                    CellRange lastCells = null;
+                    if (tp.getFillDirection() == FillDirection.VERTICAL) {
+                        lastBorderType = CellBordersType.BOTTOM;
+                        lastCells =
+                                table.getCellRangeByPosition(headers.getColumn(), table.getRowCount() - 1,
+                                        table.getColumnCount() - 1, table.getRowCount() - 1);
+                    } else {
+                        lastBorderType = CellBordersType.LEFT;
+                        lastCells =
+                                table.getCellRangeByPosition(table.getColumnCount() - 1, headers.getRow(),
+                                        table.getColumnCount() - 1, table.getRowCount() - 1);
+                    }
+                    for (i = 0; i < lastCells.getColumnNumber(); i++) {
+                        for (j = 0; j < lastCells.getRowNumber(); j++) {
+                            lastCells.getCellByPosition(i, j).setBorders(lastBorderType, lastBorder);
+                        }
+                    }
+                }
             }
         }
 
     }
 
-    //TODO Automatic Borders could be stripped along with the Categories to speed up the process. The cell ranges are the same.
-    //     Consider joining  collectAutoBorders && getCategoryOrder methods
-//    private static List<Border> collectAutoBorders(Table table, TableCoordenate headers, FillDirection fdir) {
-//        List<Border> autoBorders = new ArrayList<>();
-//        Border borderChoices[] = new Border[4];
-//        CellBordersType firstBorderType;
-//        CellRange cellRange = null;
-//        if (fdir == FillDirection.VERTICAL) {
-//            firstBorderType = CellBordersType.TOP;
-//            cellRange =
-//                    table.getCellRangeByPosition(headers.getColumn(), headers.getRow(), table.getColumnCount() - 1,
-//                            headers.getRow());
-//            borderChoices[1] = cellRange.getCellByPosition(0, 0).getBorder(CellBordersType.LEFT);
-//            borderChoices[2] = cellRange.getCellByPosition(cellRange.getColumnNumber() - 1, 0).getBorder(CellBordersType.RIGHT);
-//        } else {
-//            firstBorderType = CellBordersType.RIGHT;
-//            cellRange =
-//                    table.getCellRangeByPosition(headers.getColumn(), headers.getRow(), headers.getColumn(),
-//                            table.getRowCount() - 1);
-//            borderChoices[1] = cellRange.getCellByPosition(0, 0).getBorder(CellBordersType.TOP);
-//            borderChoices[2] = cellRange.getCellByPosition(0, cellRange.getRowNumber() - 1).getBorder(CellBordersType.BOTTOM);
-//        }
-//        borderChoices[3] = new Border(Color.BLACK, 1, SupportedLinearMeasure.PT);
-//        for (int i = 0; i < cellRange.getColumnNumber(); i++) {
-//            for (int j = 0; j < cellRange.getRowNumber(); j++) {
-//                borderChoices[0] = cellRange.getCellByPosition(i, j).getBorder(firstBorderType);
-//                for (int b = 0; b < 4; b++) {
-//                    if (!borderChoices[b].equals(Border.NONE)) {
-//                        autoBorders.add(borderChoices[b]);
-//                        break;
-//                    }
-//                }
-//            }
-//        }
-//        return autoBorders;
-//    }
+    // XXX This breaks if the cells contain any "none" border attribute.
+    private static Border collectLastBorder(Table table, int hCol, int hRow, LastBorderOrigin lastBorderOrigin,
+            CellBordersType lastBorderOriginType) {
+        Border border = null;
+        if (lastBorderOrigin != null) {
+            if (hRow != 0 && hCol != 0) {
+                System.err.println("Table " + table.getTableName()
+                        + " borders can be fully specified within the template file. Last Border Parameter will be ignored.");
+            } else {
+                border = Border.NONE;
+                switch (lastBorderOrigin) {
+                case HEADER:
+                    switch (lastBorderOriginType) {
+                    case LEFT:
+                    case TOP:
+                        border = table.getCellByPosition(0, 0).getBorder(lastBorderOriginType);
+                        break;
+                    case RIGHT:
+                    case BOTTOM:
+                        border =
+                                table.getCellByPosition((hCol != 0 ? hCol : table.getColumnCount()) - 1,
+                                        (hRow != 0 ? hRow : table.getRowCount()) - 1).getBorder(lastBorderOriginType);
+                        break;
+                    default:
+                        break;
+                    }
+                    break;
+                case BODY:
+                    switch (lastBorderOriginType) {
+                    case LEFT:
+                    case TOP:
+                        border = table.getCellByPosition(hCol, hRow).getBorder(lastBorderOriginType);
 
+                        break;
+                    case RIGHT:
+                    case BOTTOM:
+                        border =
+                                table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
+                                        lastBorderOriginType);
+                        break;
+                    default:
+                        break;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        return border;
+    }
+
+    // XXX This may break if the element contains any "none" border attribute.
     private static boolean copyStyle(OdfStylableElement from, OdfStylableElement to) {
         if (to.getStyleFamily().equals(from.getStyleFamily())) {
             for (OdfStyleProperty prop : from.getStyleFamily().getProperties()) {
                 String value = from.getProperty(prop);
-                if (value != null && !value.equals("none")) {
+                if (value != null) {
                     to.setProperty(prop, value);
                 }
             }
@@ -336,21 +350,15 @@ public class DocGenerator {
         return false;
     }
 
-    private static Map<String, Map<OdfStyleProperty, String>> collectCellStyles(Table table, TableCoordenate headers,
-            TableCoordenate styleRCoord) {
-        Map<String, Map<OdfStyleProperty, String>> cellStyles = new HashMap<>();
-        for (int i = headers.getColumn(); i < table.getColumnCount(); i++) {
-            int limit = i > styleRCoord.getColumn() ? styleRCoord.getRow() + headers.getRow() : table.getRowCount();
-            for (int j = headers.getColumn(); j < limit; j++) {
-                TableTableCellElementBase el = table.getCellByPosition(i, j).getOdfElement();
-                Map<OdfStyleProperty, String> propMap = new HashMap<>();
-                for (OdfStyleProperty prop : el.getStyleFamily().getProperties()) {
-                    String value = el.getProperty(prop);
-                    if (value != null && !value.equals("none")) {
-                        propMap.put(prop, value);
-                    }
+    private static Map<String, String> collectCellStyles(Table table, int hCol, int hRow, TableCoordenate styleRCoord) {
+        Map<String, String> cellStyles = null;
+        if (styleRCoord != null) {
+            cellStyles = new HashMap<>();
+            for (int i = hCol; i < table.getColumnCount(); i++) {
+                int limit = i > styleRCoord.getColumn() ? styleRCoord.getRow() + hRow : table.getRowCount();
+                for (int j = hCol; j < limit; j++) {
+                    cellStyles.put(new TableCoordenate(i, j).toString(), table.getCellByPosition(i, j).getStyleName());
                 }
-                cellStyles.put(new TableCoordenate(i, j).toString(), propMap);
             }
         }
         return cellStyles;
