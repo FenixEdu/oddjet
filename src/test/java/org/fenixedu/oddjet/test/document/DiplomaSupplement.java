@@ -6,12 +6,13 @@ import java.util.List;
 import org.fenixedu.oddjet.ListTableData;
 import org.fenixedu.oddjet.PositionalTableData;
 import org.fenixedu.oddjet.Template;
+import org.fenixedu.oddjet.UnexpectedTemplateFileTypeException;
 import org.fenixedu.oddjet.test.bean.Observation;
 import org.fenixedu.oddjet.test.bean.ProgramCurricularUnit;
 
 public class DiplomaSupplement extends Template {
 
-    public DiplomaSupplement(String odtFilePath) {
+    public DiplomaSupplement(String odtFilePath) throws UnexpectedTemplateFileTypeException {
         super(odtFilePath);
     }
 

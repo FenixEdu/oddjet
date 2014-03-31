@@ -1,27 +1,37 @@
 package org.fenixedu.oddjet;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
 abstract public class Template {
 
-    private String odtFilePath;
+    private Path filePath;
     private Locale locale;
     static final public String ATTRIBUTE_ACCESS_REGEX = "\\.";
     final private Map<String, Object> parameters = new HashMap<String, Object>();
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
 
-    public Template(String odtFilePath) {
-        this.odtFilePath = odtFilePath;
-        this.locale = Locale.getDefault();
-        populate();
+    public Template(String filePathString) throws UnexpectedTemplateFileTypeException {
+        if (filePathString.endsWith(".odt") || filePathString.endsWith(".ott")) {
+            this.filePath = Paths.get(filePathString);
+            this.locale = Locale.getDefault();
+            populate();
+        } else {
+            throw new UnexpectedTemplateFileTypeException();
+        }
     }
 
-    public Template(String odtFilePath, Locale locale) {
-        this.odtFilePath = odtFilePath;
-        this.locale = locale;
-        populate();
+    public Template(String filePathString, Locale locale) throws UnexpectedTemplateFileTypeException {
+        if (filePathString.endsWith(".odt") || filePathString.endsWith(".ott")) {
+            this.filePath = Paths.get(filePathString);
+            this.locale = locale;
+            populate();
+        } else {
+            throw new UnexpectedTemplateFileTypeException();
+        }
     }
 
     public final Map<String, Object> getParameters() {
@@ -40,8 +50,12 @@ abstract public class Template {
         return tableDataSources;
     }
 
-    public String getOdtFilePath() {
-        return odtFilePath;
+    public void setFilePath(Path filePath) {
+        this.filePath = filePath;
+    }
+
+    public Path getFilePath() {
+        return filePath;
     }
 
     public Locale getLocale() {
@@ -55,4 +69,5 @@ abstract public class Template {
     abstract protected void populate();
 
     abstract public String getReportFileName();
+
 }

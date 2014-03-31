@@ -1,7 +1,10 @@
 package org.fenixedu.oddjet;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,6 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.fenixedu.oddjet.TableParameters.FillDirection;
 import org.fenixedu.oddjet.TableParameters.FillType;
 import org.fenixedu.oddjet.TableParameters.LastBorderOrigin;
@@ -32,12 +37,70 @@ public class DocGenerator {
     //TODO support itemization frames (bullets & numbers)
     //TODO build a critical error/error/warning/message system to organize to improve the prints
 
-    public static void generateDocument(Template template, String instancePath) throws Exception {
-        TextDocument document = TextDocument.loadDocument(template.getOdtFilePath());
+    public static void generateDocument(Template template, String instancePath) {
+        TextDocument document = null;
+        try {
+            document = TextDocument.loadDocument(template.getFilePath().toString());
+        } catch (Exception e) {
+            System.err.println("Unable to load the template " + template.getFilePath().toString());
+            e.printStackTrace();
+            return;
+        }
         fillUserFields(document, template.getParameters(), template.getLocale());
         fillTables(document, template.getTableDataSources(), template.getLocale());
-        document.save(instancePath);
+        try {
+            document.save(instancePath);
+        } catch (Exception e) {
+            System.err.println("Unable to save the template instance document " + instancePath);
+            e.printStackTrace();
+            return;
+        }
         document.close();
+    }
+
+    public static void generatePdf(String instancePath, String outDir) {
+        Runtime rt = Runtime.getRuntime();
+        Process pr;
+        try {
+            pr = rt.exec("soffice --headless --convert-to pdf --outdir " + outDir + " " + instancePath);
+            IOUtils.copy(pr.getErrorStream(), System.err);
+            int code = pr.waitFor();
+            if (code != 0) {
+                System.err.println("Failed to convert instance " + instancePath + " to pdf.");
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to convert instance " + instancePath + " to pdf.");
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static byte[] generatePdfByteArray(Template template, String outDir, boolean cleanup) {
+        String filename = template.getFilePath().getFileName().toString();
+        String instancePath =
+                Paths.get(outDir).resolve(new StringBuilder(filename).insert(filename.length() - 4, "Instance").toString())
+                        .toString();
+        generateDocument(template, instancePath);
+        generatePdf(instancePath, outDir);
+        String pdfPath = instancePath.substring(0, instancePath.length() - 4) + ".pdf";
+        byte[] content = null;
+        try {
+            content = FileUtils.readFileToByteArray(new File(pdfPath));
+        } catch (IOException e) {
+            System.err.println("Failed to read pdf document " + pdfPath + ".");
+            e.printStackTrace();
+        }
+        if (cleanup) {
+            if (!(new File(instancePath).delete() && new File(pdfPath).delete())) {
+                System.err.println("Unable to cleanup temporary files.");
+            }
+        }
+        return content;
+    }
+
+    public static byte[] generatePdfByteArray(Template template, String tempDir) {
+        return generatePdfByteArray(template, tempDir, false);
     }
 
     private static void fillUserFields(TextDocument document, Map<String, Object> parameters, Locale locale) {
