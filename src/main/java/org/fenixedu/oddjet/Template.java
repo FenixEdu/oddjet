@@ -1,5 +1,6 @@
 package org.fenixedu.oddjet;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -14,13 +15,18 @@ abstract public class Template {
     final private Map<String, Object> parameters = new HashMap<String, Object>();
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
 
-    public Template(String filePathString) throws UnexpectedTemplateFileTypeException {
-        if (filePathString.endsWith(".odt") || filePathString.endsWith(".ott")) {
-            this.filePath = Paths.get(filePathString);
-            this.locale = Locale.getDefault();
-            populate();
+    public Template(String filePathString) throws UnexpectedTemplateFileTypeException, UnreadableTemplateFileException {
+        if (new File(filePathString).canRead()) {
+            if ((filePathString.endsWith(".odt") || filePathString.endsWith(".ott"))) {
+                this.filePath = Paths.get(filePathString);
+                this.locale = Locale.getDefault();
+                populate();
+            } else {
+                throw new UnexpectedTemplateFileTypeException();
+            }
         } else {
-            throw new UnexpectedTemplateFileTypeException();
+            throw new UnreadableTemplateFileException();
+
         }
     }
 
