@@ -197,7 +197,7 @@ public class Template {
         return ostream.toByteArray();
     }
 
-    public byte[] getByteArrayPDFInstance() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public byte[] getInstancePDFByteArray() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         ByteArrayInputStream istream = new ByteArrayInputStream(getInstanceByteArray());
 
@@ -221,29 +221,29 @@ public class Template {
         }
     }
 
-    public void savePDFInstance(String path) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public void saveInstancePDF(String path) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         try {
             FileOutputStream ostream = new FileOutputStream(path);
-            savePDFInstance(ostream);
+            saveInstancePDF(ostream);
         } catch (FileNotFoundException e) {
             throw new DocumentSaveException(e);
         }
     }
 
-    public void savePDFInstance(File file) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public void saveInstancePDF(File file) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         FileOutputStream ostream;
         try {
             ostream = new FileOutputStream(file);
-            savePDFInstance(ostream);
+            saveInstancePDF(ostream);
         } catch (FileNotFoundException e) {
             throw new DocumentSaveException(e);
         }
     }
 
-    public void savePDFInstance(OutputStream ostream) throws DocumentLoadException, DocumentSaveException,
+    public void saveInstancePDF(OutputStream ostream) throws DocumentLoadException, DocumentSaveException,
             OpenOfficeConnectionException {
         try {
-            ostream.write(getByteArrayPDFInstance());
+            ostream.write(getInstancePDFByteArray());
         } catch (IOException e) {
             throw new DocumentSaveException(e);
         }
