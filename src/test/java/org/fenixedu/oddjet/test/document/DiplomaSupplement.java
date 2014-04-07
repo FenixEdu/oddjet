@@ -1,6 +1,6 @@
 package org.fenixedu.oddjet.test.document;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +12,7 @@ import org.fenixedu.oddjet.test.bean.ProgramCurricularUnit;
 
 public class DiplomaSupplement extends Template {
 
-    public DiplomaSupplement(String odtFilePath) throws SecurityException, FileNotFoundException {
+    public DiplomaSupplement(String odtFilePath) throws SecurityException, IOException {
         super(odtFilePath);
         addReportName(getLocale(), "Diploma Supplement");
         addParameter("full_name", "Manuel dos Santos");

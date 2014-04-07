@@ -29,6 +29,8 @@ import org.fenixedu.oddjet.table.TableParameters.FillDirection;
 import org.fenixedu.oddjet.table.TableParameters.FillType;
 import org.fenixedu.oddjet.table.TableParameters.LastBorderOrigin;
 import org.fenixedu.oddjet.table.TableSpecification;
+import org.odftoolkit.odfdom.converter.core.utils.IOUtils;
+import org.odftoolkit.odfdom.dom.OdfMetaDom;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
 import org.odftoolkit.simple.TextDocument;
@@ -40,6 +42,7 @@ import org.odftoolkit.simple.table.Cell;
 import org.odftoolkit.simple.table.CellRange;
 import org.odftoolkit.simple.table.Table;
 import org.odftoolkit.simple.text.Paragraph;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.artofsolving.jodconverter.DefaultDocumentFormatRegistry;
@@ -56,57 +59,45 @@ public class Template {
     //TODO support itemization frames (bullets & numbers)
     //TODO build a critical error/error/warning/message system to organize to improve the prints
 
-    private File file;
-    private InputStream fileStream;
+    private byte[] bytes;
     private Locale locale;
     private Map<Locale, String> reportNames = new HashMap<Locale, String>();
     static final public String ATTRIBUTE_ACCESS_REGEX = "\\.";
     final private Map<String, Object> parameters = new HashMap<String, Object>();
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
 
-    public Template(String filePath, Locale locale) throws SecurityException, FileNotFoundException {
-        this.file = new File(filePath);
-        this.fileStream = new FileInputStream(file);
+    public Template(String filePath, Locale locale) throws SecurityException, IOException {
+        File file = new File(filePath);
+        ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+        IOUtils.copy(new FileInputStream(file), ostream);
+        this.bytes = ostream.toByteArray();
         this.locale = locale;
     }
 
-    public Template(String filePathString) throws SecurityException, FileNotFoundException {
+    public Template(String filePathString) throws SecurityException, IOException {
         this(filePathString, Locale.getDefault());
     }
 
-    public Template(File file, Locale locale) throws SecurityException, FileNotFoundException {
-        this.file = file;
-        this.fileStream = new FileInputStream(file);
+    public Template(File file, Locale locale) throws SecurityException, IOException {
+        ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+        IOUtils.copy(new FileInputStream(file), ostream);
+        this.bytes = ostream.toByteArray();
         this.locale = locale;
     }
 
-    public Template(File file) throws SecurityException, FileNotFoundException {
+    public Template(File file) throws SecurityException, IOException {
         this(file, Locale.getDefault());
     }
 
-    public Template(InputStream fileStream, Locale locale) {
-        this.fileStream = fileStream;
+    public Template(InputStream fileStream, Locale locale) throws IOException {
+        ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+        IOUtils.copy(fileStream, ostream);
+        this.bytes = ostream.toByteArray();
         this.locale = locale;
     }
 
-    public Template(InputStream fileStream) {
+    public Template(InputStream fileStream) throws IOException {
         this(fileStream, Locale.getDefault());
-    }
-
-    public File getFile() {
-        return file;
-    }
-
-    public InputStream getFileStream() {
-        return fileStream;
-    }
-
-    public void setFile(File file) {
-        this.file = file;
-    }
-
-    public void setFileStream(InputStream fileStream) {
-        this.fileStream = fileStream;
     }
 
     public final Map<String, Object> getParameters() {
@@ -148,11 +139,7 @@ public class Template {
     public TextDocument getInstance() throws DocumentLoadException {
         TextDocument document;
         try {
-            if (getFile() != null) {
-                document = TextDocument.loadDocument(getFile());
-            } else {
-                document = TextDocument.loadDocument(getFileStream());
-            }
+            document = TextDocument.loadDocument(new ByteArrayInputStream(bytes));
         } catch (Exception e) {
             throw new DocumentLoadException(e);
         }
@@ -173,6 +160,7 @@ public class Template {
 
     public void saveInstance(File file) throws DocumentLoadException, DocumentSaveException {
         TextDocument document = getInstance();
+
         try {
             document.save(file);
         } catch (Exception e) {
@@ -246,6 +234,17 @@ public class Template {
             ostream.write(getInstancePDFByteArray());
         } catch (IOException e) {
             throw new DocumentSaveException(e);
+        }
+    }
+
+    public int getInstancePageCount() {
+        try {
+            TextDocument document = getInstance();
+            OdfMetaDom meta = document.getMetaDom();
+            Node statistics = meta.getElementsByTagName("meta:document-statistic").item(0);
+            return Integer.parseInt(statistics.getAttributes().getNamedItem("meta:page-count").getNodeValue());
+        } catch (Exception e) {
+            return -1;
         }
     }
 
