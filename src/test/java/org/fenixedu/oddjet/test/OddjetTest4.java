@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 
-import org.fenixedu.oddjet.DocGenerator;
 import org.fenixedu.oddjet.Template;
 import org.fenixedu.oddjet.test.document.DiplomaSupplement;
 import org.junit.Test;
@@ -18,7 +17,7 @@ public class OddjetTest4 {
     @Test
     public void doIt() throws Exception {
         Template t = new DiplomaSupplement("./src/test/resources/diplomaSupplement.odt");
-        byte[] bytes = DocGenerator.generatePdfByteArray(t, "./target");
+        byte[] bytes = t.getByteArrayPDFInstance();
         File f = new File("./target/copy.pdf");
         OutputStream o = new BufferedOutputStream(new FileOutputStream(f));
         o.write(bytes);

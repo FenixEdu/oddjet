@@ -1,4 +1,4 @@
-package org.fenixedu.oddjet;
+package org.fenixedu.oddjet.table;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

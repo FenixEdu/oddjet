@@ -1,6 +1,5 @@
 package org.fenixedu.oddjet.test;
 
-import org.fenixedu.oddjet.DocGenerator;
 import org.fenixedu.oddjet.Template;
 import org.fenixedu.oddjet.test.document.DiplomaSupplement;
 import org.junit.Test;
@@ -14,6 +13,6 @@ public class OddjetTest2 {
     public void doIt() throws Exception {
         Template t = new DiplomaSupplement("./src/test/resources/diplomaSupplement.odt");
 
-        DocGenerator.generateDocument(t, "./target/diplomaSupplementInst.odt");
+        t.saveInstance("./target/diplomaSupplementInst.odt");
     }
 }

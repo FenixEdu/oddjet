@@ -2,7 +2,6 @@ package org.fenixedu.oddjet.test;
 
 import java.util.Locale;
 
-import org.fenixedu.oddjet.DocGenerator;
 import org.fenixedu.oddjet.Template;
 import org.fenixedu.oddjet.test.bean.Person;
 import org.fenixedu.oddjet.test.bean.Shirt;
@@ -42,40 +41,20 @@ public class OddjetTest3 {
 
     @Test
     public void AttrAccess() throws Exception {
-        Template t = new Template("./src/test/resources/AttrAccessTest.EN.odt", Locale.ENGLISH) {
-
-            @Override
-            protected void populate() {
-                addParameter("person", person);
-                addParameter("randomWord", randW);
-            }
-
-            @Override
-            public String getReportFileName() {
-                return "Attribute Access Test";
-            }
-
-        };
-        DocGenerator.generateDocument(t, "./target/AttrAccessTestInst.EN.odt");
+        Template t = new Template("./src/test/resources/AttrAccessTest.EN.odt", Locale.ENGLISH);
+        t.addParameter("person", person);
+        t.addParameter("randomWord", randW);
+        t.addReportName(Locale.ENGLISH, "Attribute Access Test");
+        t.saveInstance("./target/AttrAccessTestInst.EN.odt");
     }
 
     @Test
     public void diffLocale() throws Exception {
-        Template t = new Template("./src/test/resources/AttrAccessTest.FR.odt", Locale.FRENCH) {
-
-            @Override
-            protected void populate() {
-                person.setDob("1992");
-                addParameter("person", person);
-                addParameter("randomWord", randW);
-            }
-
-            @Override
-            public String getReportFileName() {
-                return "Locale Test";
-            }
-
-        };
-        DocGenerator.generateDocument(t, "./target/AttrAccessTestInst.FR.odt");
+        Template t = new Template("./src/test/resources/AttrAccessTest.FR.odt", Locale.FRENCH);
+        person.setDob("1992");
+        t.addParameter("person", person);
+        t.addParameter("randomWord", randW);
+        t.addReportName(Locale.FRENCH, "Test de Locale");
+        t.saveInstance("./target/AttrAccessTestInst.FR.odt");
     }
 }

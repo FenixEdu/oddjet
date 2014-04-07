@@ -1,23 +1,20 @@
 package org.fenixedu.oddjet.test.document;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.fenixedu.oddjet.ListTableData;
-import org.fenixedu.oddjet.PositionalTableData;
 import org.fenixedu.oddjet.Template;
-import org.fenixedu.oddjet.UnexpectedTemplateFileTypeException;
+import org.fenixedu.oddjet.table.ListTableData;
+import org.fenixedu.oddjet.table.PositionalTableData;
 import org.fenixedu.oddjet.test.bean.Observation;
 import org.fenixedu.oddjet.test.bean.ProgramCurricularUnit;
 
 public class DiplomaSupplement extends Template {
 
-    public DiplomaSupplement(String odtFilePath) throws UnexpectedTemplateFileTypeException {
+    public DiplomaSupplement(String odtFilePath) throws SecurityException, FileNotFoundException {
         super(odtFilePath);
-    }
-
-    @Override
-    protected void populate() {
+        addReportName(getLocale(), "Diploma Supplement");
         addParameter("full_name", "Manuel dos Santos");
         addParameter("family_names", "dos Santos");
         addParameter("given_names", "Manuel");
@@ -77,11 +74,6 @@ public class DiplomaSupplement extends Template {
         addParameter("authenticator_name", "Tonecas");
         addParameter("authenticator_position", "Palhaço");
 
-    }
-
-    @Override
-    public String getReportFileName() {
-        return "Diploma Supplement";
     }
 
 }

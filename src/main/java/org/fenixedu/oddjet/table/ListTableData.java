@@ -1,4 +1,4 @@
-package org.fenixedu.oddjet;
+package org.fenixedu.oddjet.table;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
