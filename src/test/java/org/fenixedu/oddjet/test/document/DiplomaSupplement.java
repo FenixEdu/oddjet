@@ -14,7 +14,6 @@ public class DiplomaSupplement extends Template {
 
     public DiplomaSupplement(String odtFilePath) throws SecurityException, IOException {
         super(odtFilePath);
-        addReportName(getLocale(), "Diploma Supplement");
         addParameter("full_name", "Manuel dos Santos");
         addParameter("family_names", "dos Santos");
         addParameter("given_names", "Manuel");

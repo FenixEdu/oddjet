@@ -44,7 +44,6 @@ public class OddjetTest3 {
         Template t = new Template("./src/test/resources/AttrAccessTest.EN.odt", Locale.ENGLISH);
         t.addParameter("person", person);
         t.addParameter("randomWord", randW);
-        t.addReportName(Locale.ENGLISH, "Attribute Access Test");
         t.saveInstance("./target/AttrAccessTestInst.EN.odt");
     }
 
@@ -54,7 +53,6 @@ public class OddjetTest3 {
         person.setDob("1992");
         t.addParameter("person", person);
         t.addParameter("randomWord", randW);
-        t.addReportName(Locale.FRENCH, "Test de Locale");
         t.saveInstance("./target/AttrAccessTestInst.FR.odt");
     }
 }

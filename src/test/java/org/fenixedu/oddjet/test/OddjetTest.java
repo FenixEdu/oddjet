@@ -3,7 +3,6 @@ package org.fenixedu.oddjet.test;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 
 import org.fenixedu.oddjet.Template;
 import org.fenixedu.oddjet.table.CategoricalTableData;
@@ -68,7 +67,6 @@ public class OddjetTest {
 
         t.addTableDataSource("person", new CategoricalTableData(tdata));
         t.addTableDataSource("courses", new CategoricalTableData(tdata2));
-        t.addReportName(Locale.getDefault(), "Test 1");
 
         t.saveInstance("./target/test1Inst.odt");
     }

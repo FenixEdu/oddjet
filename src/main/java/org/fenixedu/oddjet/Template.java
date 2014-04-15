@@ -61,7 +61,6 @@ public class Template {
 
     private byte[] bytes;
     private Locale locale;
-    private Map<Locale, String> reportNames = new HashMap<Locale, String>();
     static final public String ATTRIBUTE_ACCESS_REGEX = "\\.";
     final private Map<String, Object> parameters = new HashMap<String, Object>();
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
@@ -112,10 +111,6 @@ public class Template {
         this.tableDataSources.put(key, value);
     }
 
-    public void addReportName(final Locale key, final String value) {
-        this.reportNames.put(key, value);
-    }
-
     public Map<String, TableData> getTableDataSources() {
         return tableDataSources;
     }
@@ -127,14 +122,6 @@ public class Template {
     public void setLocale(Locale locale) {
         this.locale = locale;
     }
-
-    public String getReportFileName() {
-        return reportNames.get(locale);
-    };
-
-    public String getReportFileName(Locale locale) {
-        return reportNames.get(locale);
-    };
 
     public TextDocument getInstance() throws DocumentLoadException {
         TextDocument document;
