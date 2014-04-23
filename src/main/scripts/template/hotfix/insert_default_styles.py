@@ -14,7 +14,7 @@ xml = ET.parse(file)
 
 root = xml.getroot()
 if(root.find(".//style:default-style[@style:family='table-cell']",reverse_namespaces) is None):
-    styles = root.find('style:styles',reverse_namespaces)
+    styles = root.find('office:styles',reverse_namespaces)
     nStyle = ET.Element('style:default-style', {'style:family':'table-cell'});
     nStyleProp = ET.Element('style:table-cell-properties',{'fo:border' : '0pt solid #000000'})
     nStyle.append(nStyleProp);

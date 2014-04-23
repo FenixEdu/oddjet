@@ -5,10 +5,21 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListTableData extends TableData {
+/**
+ * Contains the data to be used for filling a table in the template organized into a list of entries. Data categories are taken to
+ * be attributes of the entry objects.
+ * 
+ * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
+ * 
+ */
+public class ListTableData implements TableData {
 
-    List<Object> data;
+    private List<Object> data;
 
+    /**
+     * @param data an Object Iterable containing the entry objects. Each entry object corresponds to a column/row in the table and
+     *            its attributes can be used as categories.
+     */
     public ListTableData(Iterable<Object> data) {
         this.data = new ArrayList<>();
         for (Object o : data) {
@@ -17,7 +28,7 @@ public class ListTableData extends TableData {
     }
 
     @Override
-    public List<List<Object>> buildPositionalData(List<String> attributeOrder) {
+    public List<List<Object>> getData(List<String> attributeOrder) {
         List<List<Object>> data = new ArrayList<List<Object>>();
         List<String> getterOrder = new ArrayList<String>();
         for (String attribute : attributeOrder) {
@@ -60,7 +71,7 @@ public class ListTableData extends TableData {
     }
 
     @Override
-    public List<List<Object>> buildPositionalData() {
+    public List<List<Object>> getData() {
         List<List<Object>> positionalData = new ArrayList<List<Object>>();
         positionalData.add(data);
         return positionalData;

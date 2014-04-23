@@ -4,34 +4,45 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class CategoricalTableData extends TableData {
+/**
+ * Contains the data to be used for filling a table in the template organized into straight-forward categories.
+ * 
+ * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
+ * 
+ */
+public class CategoricalTableData implements TableData {
 
     private Map<String, List<Object>> categoricalData;
 
+    /**
+     * Constructs a CategoricalTableData from a mapping of category string representations to data object lists
+     * 
+     * @param data a mapping of category string representations to data object lists
+     */
     public CategoricalTableData(Map<String, List<Object>> data) {
         this.categoricalData = data;
     }
 
     @Override
-    public List<List<Object>> buildPositionalData(List<String> order) {
-        List<List<Object>> positionalData = new ArrayList<>();
+    public List<List<Object>> getData(List<String> order) {
+        List<List<Object>> data = new ArrayList<>();
         for (String key : order) {
             if (key != null) {
-                positionalData.add(categoricalData.get(key));
+                data.add(categoricalData.get(key));
             } else {
-                positionalData.add(new ArrayList<Object>());
+                data.add(null);
             }
         }
-        return positionalData;
+        return data;
     }
 
     @Override
-    public List<List<Object>> buildPositionalData() {
-        List<List<Object>> positionalData = new ArrayList<List<Object>>();
+    public List<List<Object>> getData() {
+        List<List<Object>> data = new ArrayList<List<Object>>();
         for (String key : categoricalData.keySet()) {
-            positionalData.add(categoricalData.get(key));
+            data.add(categoricalData.get(key));
         }
-        return positionalData;
+        return data;
     }
 
 }

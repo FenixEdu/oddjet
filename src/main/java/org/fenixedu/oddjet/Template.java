@@ -21,14 +21,15 @@ import java.util.Map;
 
 import org.fenixedu.oddjet.exception.DocumentLoadException;
 import org.fenixedu.oddjet.exception.DocumentSaveException;
+import org.fenixedu.oddjet.exception.IllegalTableCallRepresentationException;
 import org.fenixedu.oddjet.exception.OpenOfficeConnectionException;
-import org.fenixedu.oddjet.table.TableCoordenate;
+import org.fenixedu.oddjet.table.TableCall;
+import org.fenixedu.oddjet.table.TableConfiguration;
+import org.fenixedu.oddjet.table.TableConfiguration.ContentDirection;
+import org.fenixedu.oddjet.table.TableConfiguration.ContentStructure;
+import org.fenixedu.oddjet.table.TableConfiguration.LastBorderSourceSection;
+import org.fenixedu.oddjet.table.TableCoordinate;
 import org.fenixedu.oddjet.table.TableData;
-import org.fenixedu.oddjet.table.TableParameters;
-import org.fenixedu.oddjet.table.TableParameters.FillDirection;
-import org.fenixedu.oddjet.table.TableParameters.FillType;
-import org.fenixedu.oddjet.table.TableParameters.LastBorderOrigin;
-import org.fenixedu.oddjet.table.TableSpecification;
 import org.odftoolkit.odfdom.converter.core.utils.IOUtils;
 import org.odftoolkit.odfdom.dom.OdfMetaDom;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
@@ -51,20 +52,35 @@ import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 
+/**
+ * Contains a template file along with the teplate's data and locale, allowing creating instances of the original template
+ * document with the contained data and locale, printing them to pdf and saving the results.
+ * 
+ * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
+ * 
+ */
 public class Template {
 
-    //TODO refactor code some more
-    //TODO support category data slicing
-    //TODO support lists for user fields for repeating enclosing paragraphs (for now use tables)
-    //TODO support itemization frames (bullets & numbers)
-    //TODO build a critical error/error/warning/message system to organize to improve the prints
-
+    /** The bytes of the template document file. */
     private byte[] bytes;
+    /** The locale of the template. */
     private Locale locale;
-    static final public String ATTRIBUTE_ACCESS_REGEX = "\\.";
-    final private Map<String, Object> parameters = new HashMap<String, Object>();
+    /** The regex string to match parameter attribute access. */
+    static final private String ATTRIBUTE_ACCESS_REGEX = "\\.";
+    /** Map of template data parameters. */
+    final private Map<String, Object> dataParameters = new HashMap<String, Object>();
+    /** Map of template table data sources. */
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
 
+    /**
+     * Constructs a Template reading a template file from a given file path and with a given locale.
+     * 
+     * @param filePath the path to the template file.
+     * @param locale the template's locale.
+     * @throws SecurityException if read access to the file is denied.
+     * @throws IOException if the file could not be read, possibly because it does not exist
+     *             (a <code>FileNotFoundException</code>).
+     */
     public Template(String filePath, Locale locale) throws SecurityException, IOException {
         File file = new File(filePath);
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
@@ -73,10 +89,27 @@ public class Template {
         this.locale = locale;
     }
 
-    public Template(String filePathString) throws SecurityException, IOException {
-        this(filePathString, Locale.getDefault());
+    /**
+     * Constructs a Template reading a template file from a given file path and with the default locale.
+     * 
+     * @param filePath the path to the template file.
+     * @throws SecurityException if read access to the file is denied.
+     * @throws IOException if the file could not be read, possibly because it does not exist
+     *             (a <code>FileNotFoundException</code>).
+     */
+    public Template(String filePath) throws SecurityException, IOException {
+        this(filePath, Locale.getDefault());
     }
 
+    /**
+     * Constructs a Template reading a given template file and with a given locale.
+     * 
+     * @param file the template file.
+     * @param locale the template's locale.
+     * @throws SecurityException if read access to the file is denied.
+     * @throws IOException if the file could not be read, possibly because it does not exist
+     *             (a <code>FileNotFoundException</code>).
+     */
     public Template(File file, Locale locale) throws SecurityException, IOException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         IOUtils.copy(new FileInputStream(file), ostream);
@@ -84,10 +117,25 @@ public class Template {
         this.locale = locale;
     }
 
+    /**
+     * Constructs a Template reading a given template file and with the default locale.
+     * 
+     * @param file the template file.
+     * @throws SecurityException if read access to the file is denied.
+     * @throws IOException if the file could not be read, possibly because it does not exist
+     *             (a <code>FileNotFoundException</code>).
+     */
     public Template(File file) throws SecurityException, IOException {
         this(file, Locale.getDefault());
     }
 
+    /**
+     * Constructs a Template reading the template file from a given InputStream and with a given locale.
+     * 
+     * @param fileStream the stream to read the template file.
+     * @param locale the template's locale.
+     * @throws IOException if the file could not be read from the string.
+     */
     public Template(InputStream fileStream, Locale locale) throws IOException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         IOUtils.copy(fileStream, ostream);
@@ -95,34 +143,98 @@ public class Template {
         this.locale = locale;
     }
 
+    /**
+     * Constructs a Template reading the template file from a given InputStream and with the default locale.
+     * 
+     * @param fileStream the stream to read the template file.
+     * @throws IOException if the file could not be read from the string.
+     */
     public Template(InputStream fileStream) throws IOException {
         this(fileStream, Locale.getDefault());
     }
 
-    public final Map<String, Object> getParameters() {
-        return parameters;
+    /**
+     * @return the map of template data parameters.
+     */
+    public Map<String, Object> getParameters() {
+        return dataParameters;
     }
 
-    public void addParameter(final String key, final Object value) {
-        this.parameters.put(key, value);
+    /**
+     * Adds or replaces a template data parameter.
+     * 
+     * @param name the name of the data parameter.
+     * @param value the data object for this parameter.
+     */
+    public void addParameter(String name, Object value) {
+        this.dataParameters.put(name, value);
     }
 
-    public void addTableDataSource(final String key, final TableData value) {
-        this.tableDataSources.put(key, value);
+    /** Removes all template data parameters. */
+    public void clearParameters() {
+        this.dataParameters.clear();
     }
 
+    /**
+     * Removes the template data parameter with the given name.
+     * 
+     * @param name the name of the data parameter that is to be removed.
+     */
+    public void removeParameter(String name) {
+        this.dataParameters.remove(name);
+    }
+
+    /**
+     * Adds or replaces a template table's data source.
+     * 
+     * @param name the name of the table to contain this data.
+     * @param value the object containing the table data.
+     */
+    public void addTableDataSource(String name, TableData value) {
+        this.tableDataSources.put(name, value);
+    }
+
+    /** Removes all template table data sources. */
+    public void clearTableDataSources() {
+        this.tableDataSources.clear();
+    }
+
+    /**
+     * Removes the template table's data source for the table with the given name.
+     * 
+     * @param name the name of the table whose data source is to be removed.
+     */
+    public void removeTableDataSource(String name) {
+        this.tableDataSources.remove(name);
+    }
+
+    /**
+     * @return the map of template table data sources.
+     */
     public Map<String, TableData> getTableDataSources() {
         return tableDataSources;
     }
 
+    /**
+     * @return the template locale.
+     */
     public Locale getLocale() {
         return locale;
     }
 
+    /**
+     * @param locale the locale to be set.
+     */
     public void setLocale(Locale locale) {
         this.locale = locale;
     }
 
+    /**
+     * Loads the template document from the stored document bytes, fills its variable content with the added data and returns it.
+     * 
+     * @return the TextDocument object corresponding to an instance of this template.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     */
     public TextDocument getInstance() throws DocumentLoadException {
         TextDocument document;
         try {
@@ -135,6 +247,13 @@ public class Template {
         return document;
     }
 
+    /**
+     * Instantiates the template through {@link #getInstance()} and attempts to save it as a file to the given path.
+     * 
+     * @param path the path to save the instance document to.
+     * @throws DocumentSaveException if the document can not be written to the given path.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     */
     public void saveInstance(String path) throws DocumentSaveException, DocumentLoadException {
         TextDocument document = getInstance();
         try {
@@ -145,6 +264,13 @@ public class Template {
         document.close();
     }
 
+    /**
+     * Instantiates the template through {@link #getInstance()} and attempts to save it to the given file.
+     * 
+     * @param file the file to save the instance document to.
+     * @throws DocumentSaveException if the document can not be written to the given file.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     */
     public void saveInstance(File file) throws DocumentLoadException, DocumentSaveException {
         TextDocument document = getInstance();
 
@@ -156,6 +282,13 @@ public class Template {
         document.close();
     }
 
+    /**
+     * Instantiates the template through {@link #getInstance()} and attempts to save it to the given OutputStream.
+     * 
+     * @param stream the OutputStream to save the instance document to.
+     * @throws DocumentSaveException if the document can not be written to the given OutputStream.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     */
     public void saveInstance(OutputStream stream) throws DocumentLoadException, DocumentSaveException {
         TextDocument document = getInstance();
         try {
@@ -166,12 +299,28 @@ public class Template {
         document.close();
     }
 
+    /**
+     * Saves an instance of the template through {@link #saveInstance(OutputStream)} into a byte array and returns it.
+     * 
+     * @return a byte array corresponding to an instance of this template.
+     * @throws DocumentSaveException if the document can not be written to a byte array.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     */
     public byte[] getInstanceByteArray() throws DocumentLoadException, DocumentSaveException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         saveInstance(ostream);
         return ostream.toByteArray();
     }
 
+    /**
+     * Connects to an headless OpenOffice process, sends it an instance byte array, obtained through
+     * {@link #getInstanceByteArray()} for convertion to pdf and returns a byte array with the obtained pdf print of the instance.
+     * 
+     * @return a byte array corresponding to a pdf print of an instance of this template.
+     * @throws DocumentSaveException if the document can not be written to a byte array.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     */
     public byte[] getInstancePDFByteArray() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         ByteArrayInputStream istream = new ByteArrayInputStream(getInstanceByteArray());
@@ -196,6 +345,15 @@ public class Template {
         }
     }
 
+    /**
+     * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it as a file to the
+     * given path.
+     * 
+     * @param path the path to save the instance document to.
+     * @throws DocumentSaveException if the document can not be written to a byte array.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     */
     public void saveInstancePDF(String path) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         try {
             FileOutputStream ostream = new FileOutputStream(path);
@@ -205,6 +363,14 @@ public class Template {
         }
     }
 
+    /**
+     * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it to the given file.
+     * 
+     * @param file the file to save the instance document to.
+     * @throws DocumentSaveException if the document can not be written to a byte array.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     */
     public void saveInstancePDF(File file) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         FileOutputStream ostream;
         try {
@@ -215,23 +381,38 @@ public class Template {
         }
     }
 
-    public void saveInstancePDF(OutputStream ostream) throws DocumentLoadException, DocumentSaveException,
+    /**
+     * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it to the given
+     * OutputStream.
+     * 
+     * @param stream the OutputStream to save the instance document to.
+     * @throws DocumentSaveException if the document can not be written to a byte array.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     */
+    public void saveInstancePDF(OutputStream stream) throws DocumentLoadException, DocumentSaveException,
             OpenOfficeConnectionException {
         try {
-            ostream.write(getInstancePDFByteArray());
+            stream.write(getInstancePDFByteArray());
         } catch (IOException e) {
             throw new DocumentSaveException(e);
         }
     }
 
-    public int getInstancePageCount() {
+    /**
+     * Returns the page count of an instance. To do this an instance must be fully generated, which is time-consuming.
+     * 
+     * @return the page count of the template instance.
+     * @throws DocumentLoadException if the document can not be created from the stored bytes.
+     */
+    public int getInstancePageCount() throws DocumentLoadException {
+        TextDocument document = getInstance();
         try {
-            TextDocument document = getInstance();
             OdfMetaDom meta = document.getMetaDom();
             Node statistics = meta.getElementsByTagName("meta:document-statistic").item(0);
             return Integer.parseInt(statistics.getAttributes().getNamedItem("meta:page-count").getNodeValue());
         } catch (Exception e) {
-            return -1;
+            throw new DocumentLoadException(e);
         }
     }
 
@@ -283,24 +464,37 @@ public class Template {
 
     private static void fillTables(TextDocument document, Map<String, TableData> tableDataSources, Locale locale) {
         for (Table table : document.getTableList()) {
-            TableSpecification ts = TableSpecification.build(table.getTableName(), tableDataSources);
-            if (ts != null) {
-                TableData td = ts.getData();
-                TableParameters tp = ts.getParameters();
-                TableCoordenate headers = tp.getHeaders();
-                TableCoordenate styleRCoord = tp.getStyleRCoord();
+
+            TableCall ts = null;
+            TableData td = null;
+            try {
+                ts = new TableCall(table.getTableName());
+                td = tableDataSources.get(ts.getTableDataSourceName());
+                if (td == null) {
+                    System.err.println("No matching data was found for table " + ts.getTableName()
+                            + ", assumed to be static table.");
+                }
+            } catch (IllegalTableCallRepresentationException e) {
+                System.err.println("Table name " + ts.getTableName()
+                        + " does not conform to table call notation, assumed to be static table.");
+            }
+            if (ts != null && td != null) {
+                TableConfiguration tp = ts.getParameters();
+                TableCoordinate headers = tp.getHeader();
+                TableCoordinate styleRCoord = tp.getStyleRelativeCoord();
                 int hCol = headers.getColumn();
                 int hRow = headers.getRow();
 
                 // Check if table has necessary cells predefined
-                if (tp.getFillType() != FillType.CATEGORICAL && (hRow >= table.getRowCount() || hCol >= table.getColumnCount())) {
+                if (tp.getContentStructure() != ContentStructure.CATEGORICAL
+                        && (hRow >= table.getRowCount() || hCol >= table.getColumnCount())) {
                     System.err.println("Table dimensions of " + table.getTableName()
                             + " do not allow the specification of the semantic data.");
                     continue;
                 }
                 if ((styleRCoord != null && (hRow + styleRCoord.getRow() > table.getRowCount() || hCol + styleRCoord.getColumn() > table
                         .getColumnCount()))
-                        || (tp.getLastBorderOrigin() == LastBorderOrigin.BODY && (table.getRowCount() == hRow || table
+                        || (tp.getLastBorderSourceSection() == LastBorderSourceSection.BODY && (table.getRowCount() == hRow || table
                                 .getColumnCount() == hCol))) {
                     System.err.println("Table dimensions of " + table.getTableName()
                             + " are not suficient to specify the table cell format.");
@@ -311,19 +505,20 @@ public class Template {
                 //      This is only necessary due to a quirk in the simpleAPI where creating a new column/row changes the style of the cell
                 //      in the previous column/row.
                 Map<String, String> cellStyles = collectCellStyles(table, hCol, hRow, styleRCoord);
-                Border lastBorder = collectLastBorder(table, hCol, hRow, tp.getLastBorderOrigin(), tp.getLastBorderOriginType());
+                Border lastBorder =
+                        collectLastBorder(table, hCol, hRow, tp.getLastBorderSourceSection(), tp.getLastBorderSourceType());
 
                 // Get the positional version of the data ( using the category order in the template table in the semantic case )
                 List<List<Object>> data;
-                if (tp.getFillType() == FillType.CATEGORICAL) {
+                if (tp.getContentStructure() == ContentStructure.CATEGORICAL) {
                     List<String> categoryOrder = null;
-                    categoryOrder = getCategoryOrder(table, headers, tp.getFillDirection());
-                    data = td.buildPositionalData(categoryOrder);
+                    categoryOrder = getCategoryOrder(table, headers, tp.getContentDirection());
+                    data = td.getData(categoryOrder);
                 } else {
-                    data = td.buildPositionalData();
+                    data = td.getData();
                 }
                 int X, Y, i, j, startX, startY, limitX, limitY, tableDimX, tableSpaceX, tableDimY, tableSpaceY, nData = 0;
-                if (tp.getFillDirection() == FillDirection.VERTICAL) {
+                if (tp.getContentDirection() == ContentDirection.VERTICAL) {
                     startX = hCol;
                     startY = hRow;
                     tableDimX = table.getRowByIndex(hRow).getCellCount();
@@ -364,7 +559,7 @@ public class Template {
                     }
                     for (Y = startY, j = 0; j < limitY; j++, Y++) {
                         Cell cell =
-                                tp.getFillDirection() == FillDirection.VERTICAL ? table.getCellByPosition(X, Y) : table
+                                tp.getContentDirection() == ContentDirection.VERTICAL ? table.getCellByPosition(X, Y) : table
                                         .getCellByPosition(Y, X);
                         switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
                         case STEP:
@@ -430,14 +625,14 @@ public class Template {
                     for (i = hCol; i < table.getColumnCount(); i++) {
                         for (j = hRow; j < table.getRowCount(); j++) {
                             Cell cell = table.getCellByPosition(i, j);
-                            TableCoordenate styleCellCoord;
+                            TableCoordinate styleCellCoord;
                             if (sCol == 0) {        // vertical
-                                styleCellCoord = new TableCoordenate(i, j % sRow + hRow);
+                                styleCellCoord = new TableCoordinate(i, j % sRow + hRow);
                             } else if (sRow == 0) { // horizontal
-                                styleCellCoord = new TableCoordenate(i % sCol + hCol, j);
+                                styleCellCoord = new TableCoordinate(i % sCol + hCol, j);
                             } else {                // periodic
                                 int jumps = Math.min((i - hCol) / sCol, (j - hRow) / sRow);
-                                styleCellCoord = new TableCoordenate(i - jumps * sCol, j - jumps * sRow);
+                                styleCellCoord = new TableCoordinate(i - jumps * sCol, j - jumps * sRow);
                             }
                             // Copy style cell style properties
                             cell.setCellStyleName(cellStyles.get(styleCellCoord.toString()));
@@ -457,7 +652,7 @@ public class Template {
                 if (lastBorder != null) {
                     CellBordersType lastBorderType;
                     CellRange lastCells = null;
-                    if (tp.getFillDirection() == FillDirection.VERTICAL) {
+                    if (tp.getContentDirection() == ContentDirection.VERTICAL) {
                         lastBorderType = CellBordersType.BOTTOM;
                         lastCells =
                                 table.getCellRangeByPosition(headers.getColumn(), table.getRowCount() - 1,
@@ -480,7 +675,7 @@ public class Template {
     }
 
     // XXX This breaks if the cells contain any "none" border attribute.
-    private static Border collectLastBorder(Table table, int hCol, int hRow, LastBorderOrigin lastBorderOrigin,
+    private static Border collectLastBorder(Table table, int hCol, int hRow, LastBorderSourceSection lastBorderOrigin,
             CellBordersType lastBorderOriginType) {
         Border border = null;
         if (lastBorderOrigin != null) {
@@ -545,24 +740,24 @@ public class Template {
         return false;
     }
 
-    private static Map<String, String> collectCellStyles(Table table, int hCol, int hRow, TableCoordenate styleRCoord) {
+    private static Map<String, String> collectCellStyles(Table table, int hCol, int hRow, TableCoordinate styleRCoord) {
         Map<String, String> cellStyles = null;
         if (styleRCoord != null) {
             cellStyles = new HashMap<>();
             for (int i = hCol; i < table.getColumnCount(); i++) {
                 int limit = i > styleRCoord.getColumn() ? styleRCoord.getRow() + hRow : table.getRowCount();
                 for (int j = hCol; j < limit; j++) {
-                    cellStyles.put(new TableCoordenate(i, j).toString(), table.getCellByPosition(i, j).getStyleName());
+                    cellStyles.put(new TableCoordinate(i, j).toString(), table.getCellByPosition(i, j).getStyleName());
                 }
             }
         }
         return cellStyles;
     }
 
-    private static List<String> getCategoryOrder(Table table, TableCoordenate headers, FillDirection fdir) {
+    private static List<String> getCategoryOrder(Table table, TableCoordinate headers, ContentDirection fdir) {
         List<String> categoryOrder = new ArrayList<String>();
         CellRange categoryRange = null;
-        if (fdir == FillDirection.VERTICAL) {
+        if (fdir == ContentDirection.VERTICAL) {
             categoryRange =
                     table.getCellRangeByPosition(headers.getColumn(), headers.getRow(), table.getColumnCount() - 1,
                             headers.getRow());
