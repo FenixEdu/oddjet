@@ -3,7 +3,7 @@ package org.fenixedu.oddjet.table;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.fenixedu.oddjet.exception.IllegalParameterRepresentationException;
+import org.fenixedu.oddjet.exception.IllegalTableParameterRepresentationException;
 import org.fenixedu.oddjet.exception.UnknownParameterTypeException;
 import org.odftoolkit.simple.style.StyleTypeDefinitions.CellBordersType;
 
@@ -316,11 +316,11 @@ public class TableConfiguration {
          * @param tableConfig the TableConfiguration instance to be affected.
          * @throws {@link UnknownParameterTypeException} if the given string fulfills the generic parameter restrictions but not a
          *         specific parameter type.
-         * @throws {@link IllegalParameterRepresentationException} if the given string does not fulfill the generic parameter
+         * @throws {@link IllegalTableParameterRepresentationException} if the given string does not fulfill the generic parameter
          *         restrictions.
          */
         public static void readInto(String parameter, TableConfiguration tableConfig) throws UnknownParameterTypeException,
-                IllegalParameterRepresentationException {
+                IllegalTableParameterRepresentationException {
             parameter = parameter.toLowerCase();
             Matcher matcher = null;
             if ((matcher = ParameterType.HEADER.getMatcher(parameter)).find()) {
@@ -364,7 +364,7 @@ public class TableConfiguration {
             } else if ((ParameterType.GENERIC.getMatcher(parameter)).find()) {
                 throw new UnknownParameterTypeException(parameter);
             } else {
-                throw new IllegalParameterRepresentationException(parameter);
+                throw new IllegalTableParameterRepresentationException(parameter);
             }
         }
     }

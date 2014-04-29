@@ -1,9 +1,9 @@
 package org.fenixedu.oddjet.table;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.fenixedu.oddjet.Template;
 
 /**
  * Contains the data to be used for filling a table in the template organized into a list of entries. Data categories are taken to
@@ -42,28 +42,8 @@ public class ListTableData implements TableData {
         for (int i = 0; i < this.data.size(); i++) {
             Object o = this.data.get(i);
             int idx = 0;
-            for (String getterName : getterOrder) {
-                Object attribute = null;
-                if (getterName != null) {
-                    try {
-                        Method getter = o.getClass().getMethod(getterName);
-                        attribute = getter.invoke(o);
-                    } catch (NoSuchMethodException nsme) {
-                        System.err.println("No matching getter was found for the attribute named '" + attribute
-                                + "' in object nr." + i + ".");
-                    } catch (SecurityException se) {
-                        System.err.println("Non-public getter for the attribute named '" + attribute + "' in object nr." + i
-                                + ".");
-                    } catch (IllegalAccessException iae) {
-                        System.err.println("The getter for attribute '" + attribute + "' could not be accessed in object nr." + i
-                                + ".");
-                    } catch (InvocationTargetException ite) {
-                        System.err.println("Exception ocurred in the getter for attribute '" + attribute + "' in object nr." + i
-                                + ":");
-                        ite.printStackTrace();
-                    }
-                }
-                data.get(idx).add(attribute);
+            for (String attribute : attributeOrder) {
+                data.get(idx).add(Template.resolveAttributeChain(o, attribute));
                 idx++;
             }
         }

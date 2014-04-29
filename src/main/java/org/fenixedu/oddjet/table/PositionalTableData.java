@@ -3,6 +3,9 @@ package org.fenixedu.oddjet.table;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Contains the data to be used for filling a table in the template organized in a positional way. For ordering purposes indexes
  * can be used as categories.
@@ -13,6 +16,8 @@ import java.util.List;
 public class PositionalTableData implements TableData {
 
     List<List<Object>> data;
+
+    private static final Logger logger = LoggerFactory.getLogger(PositionalTableData.class);
 
     /**
      * @param data an Iterable of Object Iterables where each Object Iterable corresponds to a column/row of the table and each
@@ -53,13 +58,11 @@ public class PositionalTableData implements TableData {
             if (index != null) {
                 try {
                     i = Integer.parseInt(index);
-                    if (i < this.data.size()) {
-                        dataList = this.data.get(i);
-                    } else {
-                        System.err.println("Index '" + i + "' is out of bounds.");
-                    }
+                    dataList = this.data.get(i);
                 } catch (NumberFormatException nfe) {
-                    System.err.println("Positional table data does not support non-integer categories such as '" + index + "'.");
+                    logger.error("Non-integer categories such as '" + index + "' are not supported.");
+                } catch (IndexOutOfBoundsException iobe) {
+                    logger.error("Index is out of bounds: " + iobe.getMessage() + ".");
                 }
             }
             data.add(dataList);

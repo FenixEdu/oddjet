@@ -9,19 +9,25 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.fenixedu.oddjet.exception.DocumentLoadException;
 import org.fenixedu.oddjet.exception.DocumentSaveException;
 import org.fenixedu.oddjet.exception.IllegalTableCallRepresentationException;
+import org.fenixedu.oddjet.exception.IllegalTemplateParameterNameException;
 import org.fenixedu.oddjet.exception.OpenOfficeConnectionException;
 import org.fenixedu.oddjet.table.TableCall;
 import org.fenixedu.oddjet.table.TableConfiguration;
@@ -43,6 +49,8 @@ import org.odftoolkit.simple.table.Cell;
 import org.odftoolkit.simple.table.CellRange;
 import org.odftoolkit.simple.table.Table;
 import org.odftoolkit.simple.text.Paragraph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -65,12 +73,14 @@ public class Template {
     private byte[] bytes;
     /** The locale of the template. */
     private Locale locale;
-    /** The regex string to match parameter attribute access. */
-    static final private String ATTRIBUTE_ACCESS_REGEX = "\\.";
     /** Map of template data parameters. */
     final private Map<String, Object> dataParameters = new HashMap<String, Object>();
     /** Map of template table data sources. */
     final private Map<String, TableData> tableDataSources = new HashMap<String, TableData>();
+
+    /** The regex string to match parameter attribute access. */
+    private static final String ATTRIBUTE_ACCESS_REGEX = "\\.";
+    private static final Logger logger = LoggerFactory.getLogger(Template.class);
 
     /**
      * Constructs a Template reading a template file from a given file path and with a given locale.
@@ -165,9 +175,14 @@ public class Template {
      * 
      * @param name the name of the data parameter.
      * @param value the data object for this parameter.
+     * @throws IllegalTemplateParameterNameException if the supplied name contains the attribute access operator ".".
      */
-    public void addParameter(String name, Object value) {
-        this.dataParameters.put(name, value);
+    public void addParameter(String name, Object value) throws IllegalTemplateParameterNameException {
+        if (Pattern.compile(ATTRIBUTE_ACCESS_REGEX).matcher(name).find()) {
+            throw new IllegalTemplateParameterNameException(name);
+        } else {
+            this.dataParameters.put(name, value);
+        }
     }
 
     /** Removes all template data parameters. */
@@ -421,45 +436,147 @@ public class Template {
         try {
             nodes = document.getContentRoot().getElementsByTagName("text:user-field-decl");
         } catch (Exception e) {
-            System.err.println("Failed to create the file DOM while filling the user fields.");
+            logger.error("Failed to create the file DOM while filling the user fields.");
             e.printStackTrace();
             return;
         }
         for (int i = 0; i < nodes.getLength(); i++) {
             String userFieldName = nodes.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
-            String[] nameComponents = userFieldName.split(Template.ATTRIBUTE_ACCESS_REGEX);
-            Object obj = parameters.get(nameComponents[0]);
             VariableField var = document.getVariableFieldByName(userFieldName);
-            if (obj != null) {
-                for (int c = 1; c < nameComponents.length; c++) {
-                    if (!nameComponents[c].isEmpty()) {
-                        String getterName =
-                                "get" + nameComponents[c].substring(0, 1).toUpperCase() + nameComponents[c].substring(1);
-                        try {
-                            Method getter = obj.getClass().getMethod(getterName);
-                            obj = getter.invoke(obj);
-                        } catch (NoSuchMethodException nsme) {
-                            System.err.println("No matching getter was found for the attribute named '" + nameComponents[c]
-                                    + "' while trying to evaluate '" + userFieldName + "'.");
-                        } catch (SecurityException se) {
-                            System.err.println("Non-public getter for the attribute named '" + nameComponents[c]
-                                    + "' found while trying to evaluate '" + userFieldName + "'.");
-                        } catch (IllegalAccessException iae) {
-                            System.err.println("The getter for attribute '" + nameComponents[c] + "' could not be accessed.");
-
-                        } catch (InvocationTargetException ite) {
-                            System.err.println("Exception ocurred in the getter for attribute '" + nameComponents[c]
-                                    + "' while trying to evaluate '" + userFieldName + "':");
-                            ite.printStackTrace();
-                        }
-                    }
-                }
-                var.updateField(translate(obj, locale), null);
-            } else {
-                System.err.println("No matching parameter was found for the user field named '" + userFieldName
-                        + "'. Assuming the field is static.");
+            Object fieldValue = resolveAttributeChain(parameters, userFieldName);
+            if (!(fieldValue instanceof ResolveFail)) {
+                var.updateField(translate(fieldValue, locale), null);
             }
         }
+    }
+
+    /**
+     * Resolves a chain of attributes by getting the first attribute's value from the root object, and from it getting the next
+     * attribute's value successively until there are no attributes in the chain returning the last object evaluated. The
+     * attribute may be a key in a map, a public method or field of the object, or an inaccessible field with an accessible
+     * "get","is" or "has" method.
+     * 
+     * @param root the root object for the chain
+     * @param attributeChain the chain of attributes to resolve. The attribute names in the chain are expected to be separated by
+     *            dots.
+     * @return the object that can be accessed following the provided attribute chain starting at the root object.
+     */
+    public static Object resolveAttributeChain(Object root, String attributeChain) {
+        return resolveAttributeChain(root, getAttributeChainComponents(attributeChain));
+    }
+
+    // To distinguish fails from resolve successes where the result is null.
+    private static class ResolveFail {
+    };
+
+    // Adapted from https://github.com/mbosecke/pebble/blob/master/src/main/java/com/mitchellbosecke/pebble/node/expression/GetAttributeExpression.java#L43
+    public static Object resolveAttributeChain(Object root, List<String> chainComponents) {
+        Object result = root;
+        for (String attributeName : chainComponents) {
+            if (result == null) {
+                logger.error("No matching attribute was found for '" + attributeName + "' since the parent object is null.");
+                return new ResolveFail();
+            }
+
+            boolean found = false;
+            if (!found) {
+                if (result instanceof Map && ((Map<?, ?>) result).containsKey(attributeName)) {
+                    result = ((Map<?, ?>) result).get(attributeName);
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                try {
+                    Member member = null;
+                    member = findMember(result, attributeName);
+                    if (member != null) {
+                        if (member instanceof Method) {
+                            result = ((Method) member).invoke(result);
+                            found = true;
+                        } else if (member instanceof Field) {
+                            result = ((Field) member).get(result);
+                            found = true;
+                        }
+                    }
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                    logger.error("Could not access attribute '" + attributeName + "'.");
+                    return new ResolveFail();
+                }
+            }
+
+            if (!found) {
+                logger.warn("No matching attribute was found for '" + attributeName + "'. Assumed to be a static field.");
+                return new ResolveFail();
+            }
+        }
+        return result;
+    }
+
+    private static List<String> getAttributeChainComponents(String attributeChain) {
+        return new ArrayList<String>(Arrays.asList(attributeChain.split(ATTRIBUTE_ACCESS_REGEX)));
+    }
+
+    // Copied from https://github.com/mbosecke/pebble/blob/master/src/main/java/com/mitchellbosecke/pebble/node/expression/GetAttributeExpression.java#L43
+    private static Member findMember(Object object, String attributeName) throws IllegalAccessException {
+
+        Class<?> clazz = object.getClass();
+
+        boolean found = false;
+        Member result = null;
+
+        // capitalize first letter of attribute for the following attempts
+        String attributeCapitalized = Character.toUpperCase(attributeName.charAt(0)) + attributeName.substring(1);
+
+        // check get method
+        if (!found) {
+            try {
+                result = clazz.getMethod("get" + attributeCapitalized);
+                found = true;
+            } catch (NoSuchMethodException | SecurityException e) {
+            }
+        }
+
+        // check is method
+        if (!found) {
+            try {
+                result = clazz.getMethod("is" + attributeCapitalized);
+                found = true;
+            } catch (NoSuchMethodException | SecurityException e) {
+            }
+        }
+
+        // check has method
+        if (!found) {
+            try {
+                result = clazz.getMethod("has" + attributeCapitalized);
+                found = true;
+            } catch (NoSuchMethodException | SecurityException e) {
+            }
+        }
+
+        // check if attribute is a public method
+        if (!found) {
+            try {
+                result = clazz.getMethod(attributeName);
+                found = true;
+            } catch (NoSuchMethodException | SecurityException e) {
+            }
+        }
+
+        // public field
+        if (!found) {
+            try {
+                result = clazz.getField(attributeName);
+                found = true;
+            } catch (NoSuchFieldException | SecurityException e) {
+            }
+        }
+
+        if (result != null) {
+            ((AccessibleObject) result).setAccessible(true);
+        }
+        return result;
     }
 
     private static void fillTables(TextDocument document, Map<String, TableData> tableDataSources, Locale locale) {
@@ -471,34 +588,33 @@ public class Template {
                 ts = new TableCall(table.getTableName());
                 td = tableDataSources.get(ts.getTableDataSourceName());
                 if (td == null) {
-                    System.err.println("No matching data was found for table " + ts.getTableName()
-                            + ", assumed to be static table.");
+                    logger.warn("No matching data was found for table " + ts.getTableName() + ", assumed to be static table.");
                 }
             } catch (IllegalTableCallRepresentationException e) {
-                System.err.println("Table name " + ts.getTableName()
+                logger.warn("Table name " + ts.getTableName()
                         + " does not conform to table call notation, assumed to be static table.");
             }
             if (ts != null && td != null) {
                 TableConfiguration tp = ts.getParameters();
                 TableCoordinate headers = tp.getHeader();
                 TableCoordinate styleRCoord = tp.getStyleRelativeCoord();
+                ContentStructure structure = tp.getContentStructure();
                 int hCol = headers.getColumn();
                 int hRow = headers.getRow();
 
                 // Check if table has necessary cells predefined
-                if (tp.getContentStructure() != ContentStructure.CATEGORICAL
-                        && (hRow >= table.getRowCount() || hCol >= table.getColumnCount())) {
-                    System.err.println("Table dimensions of " + table.getTableName()
-                            + " do not allow the specification of the semantic data.");
-                    continue;
+                if (structure != ContentStructure.CATEGORICAL && (hRow >= table.getRowCount() || hCol >= table.getColumnCount())) {
+                    logger.error("Table dimensions of " + table.getTableName()
+                            + " do not allow the specification of the semantic data. Default category order assumed.");
+                    structure = ContentStructure.POSITIONAL;
                 }
                 if ((styleRCoord != null && (hRow + styleRCoord.getRow() > table.getRowCount() || hCol + styleRCoord.getColumn() > table
                         .getColumnCount()))
                         || (tp.getLastBorderSourceSection() == LastBorderSourceSection.BODY && (table.getRowCount() == hRow || table
                                 .getColumnCount() == hCol))) {
-                    System.err.println("Table dimensions of " + table.getTableName()
-                            + " are not suficient to specify the table cell format.");
-                    continue;
+                    logger.error("Table dimensions of " + table.getTableName()
+                            + " are not suficient to specify the table cell format. Default cell style will be used.");
+                    styleRCoord = null;
                 }
 
                 // Collect all the styles of the predefined style cells before adding any new cells.
@@ -510,7 +626,7 @@ public class Template {
 
                 // Get the positional version of the data ( using the category order in the template table in the semantic case )
                 List<List<Object>> data;
-                if (tp.getContentStructure() == ContentStructure.CATEGORICAL) {
+                if (structure == ContentStructure.CATEGORICAL) {
                     List<String> categoryOrder = null;
                     categoryOrder = getCategoryOrder(table, headers, tp.getContentDirection());
                     data = td.getData(categoryOrder);
@@ -534,11 +650,11 @@ public class Template {
                 if (tableSpaceX > 0) {
                     if (tableSpaceX < limitX) {
                         limitX = tableSpaceX;
-                        System.err.println("Too many data categories for the allocated table space in table '"
-                                + table.getTableName() + "'. The remaining categories beyond table limits will be ignored.");
+                        logger.warn("Too many data categories for the allocated table space in table '" + table.getTableName()
+                                + "'. The remaining categories beyond table limits will be ignored.");
                     } else if (tableSpaceX > limitX) {
-                        System.err.println("Too few data categories for the allocated table space in table '"
-                                + table.getTableName() + "'. The remaining space will be empty.");
+                        logger.warn("Too few data categories for the allocated table space in table '" + table.getTableName()
+                                + "'. The remaining space will be empty.");
                     }
                 }
 
@@ -551,7 +667,7 @@ public class Template {
                     if (tableSpaceY > 0) {
                         if (tableSpaceY < limitY) {
                             limitY = tableSpaceY;
-                            System.err.println("Data category nr." + X
+                            logger.warn("Data category nr." + X
                                     + " has more data than the allocated table space allows for in table '"
                                     + table.getTableName() + "'. Remaining data will be ignored.");
                             overflowReported = true;
@@ -576,7 +692,7 @@ public class Template {
                                     if (tableDimY - Y < limitY - j) {
                                         limitY = tableDimY - Y;
                                         if (!overflowReported) {
-                                            System.err.println("Data category nr." + X
+                                            logger.warn("Data category nr." + X
                                                     + " has more data than the allocated table space allows for in table '"
                                                     + table.getTableName() + "'. Remaining data will be ignored.");
                                             overflowReported = true;
@@ -606,8 +722,7 @@ public class Template {
                             cell.addParagraph(translate(dataCategory.get(j), locale));
                             break;
                         default:
-                            System.err.println("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name()
-                                    + ".");
+                            logger.error("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name() + ".");
                         }
                         nData++;
                     }
@@ -679,48 +794,43 @@ public class Template {
             CellBordersType lastBorderOriginType) {
         Border border = null;
         if (lastBorderOrigin != null) {
-            if (hRow != 0 && hCol != 0) {
-                System.err.println("Table " + table.getTableName()
-                        + " borders can be fully specified within the template file. Last Border Parameter will be ignored.");
-            } else {
-                border = Border.NONE;
-                switch (lastBorderOrigin) {
-                case HEADER:
-                    switch (lastBorderOriginType) {
-                    case LEFT:
-                    case TOP:
-                        border = table.getCellByPosition(0, 0).getBorder(lastBorderOriginType);
-                        break;
-                    case RIGHT:
-                    case BOTTOM:
-                        border =
-                                table.getCellByPosition((hCol != 0 ? hCol : table.getColumnCount()) - 1,
-                                        (hRow != 0 ? hRow : table.getRowCount()) - 1).getBorder(lastBorderOriginType);
-                        break;
-                    default:
-                        break;
-                    }
+            border = Border.NONE;
+            switch (lastBorderOrigin) {
+            case HEADER:
+                switch (lastBorderOriginType) {
+                case LEFT:
+                case TOP:
+                    border = table.getCellByPosition(0, 0).getBorder(lastBorderOriginType);
                     break;
-                case BODY:
-                    switch (lastBorderOriginType) {
-                    case LEFT:
-                    case TOP:
-                        border = table.getCellByPosition(hCol, hRow).getBorder(lastBorderOriginType);
-
-                        break;
-                    case RIGHT:
-                    case BOTTOM:
-                        border =
-                                table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
-                                        lastBorderOriginType);
-                        break;
-                    default:
-                        break;
-                    }
+                case RIGHT:
+                case BOTTOM:
+                    border =
+                            table.getCellByPosition((hCol != 0 ? hCol : table.getColumnCount()) - 1,
+                                    (hRow != 0 ? hRow : table.getRowCount()) - 1).getBorder(lastBorderOriginType);
                     break;
                 default:
                     break;
                 }
+                break;
+            case BODY:
+                switch (lastBorderOriginType) {
+                case LEFT:
+                case TOP:
+                    border = table.getCellByPosition(hCol, hRow).getBorder(lastBorderOriginType);
+
+                    break;
+                case RIGHT:
+                case BOTTOM:
+                    border =
+                            table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
+                                    lastBorderOriginType);
+                    break;
+                default:
+                    break;
+                }
+                break;
+            default:
+                break;
             }
         }
         return border;
@@ -772,7 +882,7 @@ public class Template {
                 Paragraph categoryParagraph = cell.getParagraphByIndex(0, false);
                 String category = null;
                 if (categoryParagraph == null || (category = categoryParagraph.getTextContent().trim()).isEmpty()) {
-                    System.err.println("Data category missing at (" + i + "," + j + ") in table '" + table.getTableName() + "'.");
+                    logger.warn("Data category missing at (" + i + "," + j + ") in table '" + table.getTableName() + "'.");
                     categoryOrder.add(null);
                 } else {
                     cell.removeParagraph(categoryParagraph);
