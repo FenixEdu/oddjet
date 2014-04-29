@@ -6,12 +6,12 @@ package org.fenixedu.oddjet.exception;
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
  * 
  */
-public class IllegalParameterRepresentationException extends Exception {
+public class IllegalTableParameterRepresentationException extends Exception {
 
     /**
      * @param parameter the offending string.
      */
-    public IllegalParameterRepresentationException(String parameter) {
+    public IllegalTableParameterRepresentationException(String parameter) {
         super(parameter);
     }
 }

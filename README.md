@@ -1,4 +1,3 @@
-oddjet
-======
+# ODDJET
 
-Open Document Driven Java Embebed Templating
+Open Document Driven Java Empowered Templating
