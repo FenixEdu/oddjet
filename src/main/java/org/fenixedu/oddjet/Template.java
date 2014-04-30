@@ -453,8 +453,8 @@ public class Template {
     /**
      * Resolves a chain of attributes by getting the first attribute's value from the root object, and from it getting the next
      * attribute's value successively until there are no attributes in the chain returning the last object evaluated. The
-     * attribute may be a key in a map, a public method or field of the object, or an inaccessible field with an accessible
-     * "get","is" or "has" method.
+     * attribute may be a key in a map, a public method (with 0 parameters) or field of the object, or an inaccessible field with
+     * an accessible "get","is" or "has" method.
      * 
      * @param root the root object for the chain
      * @param attributeChain the chain of attributes to resolve. The attribute names in the chain are expected to be separated by
@@ -474,16 +474,20 @@ public class Template {
         Object result = root;
         for (String attributeName : chainComponents) {
             if (result == null) {
-                logger.error("No matching attribute was found for '" + attributeName + "' since the parent object is null.");
+                logger.error("Could not resolve attribute chain. Object containing '" + attributeName + "' is null.");
                 return new ResolveFail();
             }
 
             boolean found = false;
             if (!found) {
-                if (result instanceof Map && ((Map<?, ?>) result).containsKey(attributeName)) {
-                    result = ((Map<?, ?>) result).get(attributeName);
-                    found = true;
-                }
+                try {
+                    if (result instanceof Map && ((Map<?, ?>) result).containsKey(attributeName)) {
+                        result = ((Map<?, ?>) result).get(attributeName);
+                        found = true;
+                    }
+                } catch (ClassCastException e) {
+                    //ignores maps where keys are not strings
+                };
             }
 
             if (!found) {
@@ -499,14 +503,21 @@ public class Template {
                             found = true;
                         }
                     }
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    logger.error("Could not access attribute '" + attributeName + "'.");
+                } catch (IllegalAccessException e) {
+                    logger.error("Could not resolve attribute chain. Attribute '" + attributeName + "' is not accessible.");
+                    return new ResolveFail();
+                } catch (IllegalArgumentException e) {
+                    logger.error("Could not resolve attribute chain. Method matching '" + attributeName + "' requires arguments.");
+                    return new ResolveFail();
+                } catch (InvocationTargetException e) {
+                    logger.error("Could not resolve attribute chain. Exception ocurred while evaluating the method matching '"
+                            + attributeName + "'.");
                     return new ResolveFail();
                 }
             }
 
             if (!found) {
-                logger.warn("No matching attribute was found for '" + attributeName + "'. Assumed to be a static field.");
+                logger.warn("No match was found for '" + attributeName + "'.");
                 return new ResolveFail();
             }
         }
@@ -902,6 +913,6 @@ public class Template {
             o = m.invoke(o, locale);
         } catch (Exception e) {
         }
-        return o.toString();
+        return o != null ? o.toString() : "";
     }
 }
