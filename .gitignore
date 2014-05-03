@@ -12,6 +12,7 @@
 .project
 .settings/
 .pydevproject
+.README.md.html
 
 # Build Directories #
 /target

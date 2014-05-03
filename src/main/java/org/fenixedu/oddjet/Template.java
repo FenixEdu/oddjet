@@ -690,12 +690,12 @@ public class Template {
                                         .getCellByPosition(Y, X);
                         switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
                         case STEP:
-                            // If there is a paragraph then don't do anything, else fall through
+                            // If there is a paragraph with content then don't do anything, else fall through
                             if (cell.getParagraphByIndex(0, true) != null) {
                                 break;
                             }
                         case SKIP:
-                            // If there is a paragraph then just rollback the data to be reused and recheck for data overflows, else fall through
+                            // If there is a paragraph with content then just rollback the data to be reused and recheck for data overflows, else fall through
                             if (cell.getParagraphByIndex(0, true) != null) {
                                 j--;
                                 nData--;
@@ -712,25 +712,31 @@ public class Template {
                                 }
                                 break;
                             }
-                        case APPEND:
-                            // Get the last paragraph and if it exists add the data's text to it, else fall through
-                            Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
-                            if (lastParagraph != null) {
-                                lastParagraph.getOdfElement().setTextContent(
-                                        lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
-                                break;
+                        case WRITE:
+                            switch (tp.getWriteBehavior()) {
+                            case APPEND:
+                                // Get the last paragraph and if it exists add the data's text to it, else fall through
+                                Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
+                                if (lastParagraph != null) {
+                                    lastParagraph.getOdfElement().setTextContent(
+                                            lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
+                                    break;
+                                }
+                            case PREPEND:
+                                // Get the first paragraph and if it exists add the data's text to it, else fall through
+                                Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
+                                if (firstParagraph != null) {
+                                    firstParagraph.getOdfElement().setTextContent(
+                                            translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
+                                    break;
+                                }
+                            case OVERWRITE:
+                                cell.removeTextContent();
+                                cell.addParagraph(translate(dataCategory.get(j), locale));
+                            default:
+                                logger.error("Atempted to use unimplemented Write Behavior: " + tp.getWriteBehavior().name()
+                                        + ".");
                             }
-                        case PREPEND:
-                            // Get the first paragraph and if it exists add the data's text to it, else fall through
-                            Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
-                            if (firstParagraph != null) {
-                                firstParagraph.getOdfElement().setTextContent(
-                                        translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
-                                break;
-                            }
-                        case ADD:
-                            // Add a new paragraph with the data's text
-                            cell.addParagraph(translate(dataCategory.get(j), locale));
                             break;
                         default:
                             logger.error("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name() + ".");
@@ -815,9 +821,13 @@ public class Template {
                     break;
                 case RIGHT:
                 case BOTTOM:
-                    border =
-                            table.getCellByPosition((hCol != 0 ? hCol : table.getColumnCount()) - 1,
-                                    (hRow != 0 ? hRow : table.getRowCount()) - 1).getBorder(lastBorderOriginType);
+                    if (hCol != 0 && hRow != 0) {
+                        border = null;
+                    } else {
+                        border =
+                                table.getCellByPosition((hCol != 0 ? hCol : table.getColumnCount()) - 1,
+                                        (hRow != 0 ? hRow : table.getRowCount()) - 1).getBorder(lastBorderOriginType);
+                    }
                     break;
                 default:
                     break;

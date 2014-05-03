@@ -16,22 +16,33 @@ import org.odftoolkit.simple.style.StyleTypeDefinitions.CellBordersType;
 public class TableConfiguration {
 
     /**
-     * Specifies the behavior used for filling the cells of a dynamic table with the corresponding data content.
+     * Specifies the behavior used when filling the cells of a dynamic table with the corresponding data content.
      * 
      * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
      * 
      */
     public static enum FillBehavior {
-        /** Append data to last paragraph. */
-        APPEND,
         /** If any paragraph has content keep the data for the next cell. */
         SKIP,
         /** If any paragraph has content throw away the data. */
         STEP,
-        /** Add data to cell in new paragraph. */
-        ADD,
+        /** Always write the data to the cell. */
+        WRITE
+    }
+
+    /**
+     * Specifies the behavior used when writing in the cells of a dynamic table with the corresponding data content.
+     * 
+     * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
+     * 
+     */
+    public static enum WriteBehavior {
+        /** Append data to last paragraph. */
+        APPEND,
         /** Prepend data to first paragraph. */
-        PREPEND;
+        PREPEND,
+        /** Write over the cell contents. */
+        OVERWRITE;
     }
 
     /**
@@ -204,15 +215,25 @@ public class TableConfiguration {
          * FillBehavior.SKIP}</li>
          * <li>stp or step - fill behavior is to step to the next cell, corresponding to {@link FillBehavior#STEP
          * FillBehavior.STEP}</li>
-         * <li>apd or append - fill behavior is to append the data to the cell content, corresponding to
-         * {@link FillBehavior#APPEND FillBehavior.APPEND}</li>
-         * <li>add or addparagraph - fill behavior is to append the data to the cell content in a new paragraph, corresponding to
-         * {@link FillBehavior#ADD FillBehavior.ADD}</li>
-         * <li>ppd or prepend - fill behavior is to prepend the data to the cell content, corresponding to
-         * {@link FillBehavior#PREPEND FillBehavior.PREPEND}</li>
+         * <li>wrt or write - fill behavior is to write to the cell, corresponding to {@link FillBehavior#WRITE
+         * FillBehavior.WRITE}</li>
          * </ul>
          */
-        FILL_BEHAVIOR("^(skp|skip)|(stp|step)|(apd|append)|(add|addparagraph)|(ppd|prepend)$"),
+        FILL_BEHAVIOR("^(skp|skip)|(stp|step)|(wrt|write)$"),
+
+        /**
+         * The table write behavior parameter type, see the {@link WriteBehavior} enum for details. It matches the following
+         * values:
+         * <ul>
+         * <li>apd or append - write behavior is to append the data to the cell content, corresponding to
+         * {@link WriteBehavior#APPEND WriteBehavior.APPEND}</li>
+         * <li>ppd or prepend - write behavior is to prepend the data to the cell content, corresponding to
+         * {@link WriteBehavior#PREPEND WriteBehavior.PREPEND}</li>
+         * <li>ovw or overwrite - write behavior is to prepend the data to the cell content, corresponding to
+         * {@link WriteBehavior#PREPEND WriteBehavior.PREPEND}</li>
+         * </ul>
+         */
+        WRITE_BEHAVIOR("^(apd|append)|(ppd|prepend)|(ovw|overwrite)$"),
 
         /**
          * The table content direction parameter type, see the {@link ContentDirection} enum for details. It matches the following
@@ -232,14 +253,14 @@ public class TableConfiguration {
          * values:
          * <ul>
          * <li>pre or prest or prestyled - the table is already styled as intended.</li>
-         * <li>vst or vertst or verticalstyle - table is styled vertically, meaning styles vary between columns. The relative
-         * coordinates are (0,1) so the style is copied from the previous cell in the column.</li>
-         * <li>hst or horzst or horizontalstyle - table is styled horizontally, meaning styles vary between columns. The relative
-         * coordinates are (1,0) so the style is copied from the previous cell in the row.</li>
+         * <li>vst or vertst or verticalstyle - the table is styled vertically, meaning styles vary between columns. The
+         * corresponding relative coordinates are (0,1) so the style is copied from the previous cell in the column.</li>
+         * <li>hst or horzst or horizontalstyle - the table is styled horizontally, meaning styles vary between columns. The
+         * corresponding relative coordinates are (1,0) so the style is copied from the previous cell in the row.</li>
          * <li>pst[col idx]_[row idx] or perdst[col idx]_[row idx] or periodicstyle[col idx]_[row idx] - the table is periodically
-         * styled, meaning styles vary periodically between columns, rows or a combination of both. The relative coordinates are
-         * specified by [col idx] and [row idx] so the style is copied from the cell that is [col idx] columns previous and [row
-         * idx] rows previous to the target one.</li>
+         * styled, meaning styles vary periodically between columns, rows or a combination of both. The corresponding relative
+         * coordinates are specified by [col idx] and [row idx] so the style is copied from the cell that is [col idx] columns
+         * previous and [row idx] rows previous to the target one.</li>
          * </ul>
          */
         STYLE_SOURCE("^(pre|prest|prestyled)|"                              // don't copy any style
@@ -277,7 +298,8 @@ public class TableConfiguration {
          * </li>
          * </ul>
          */
-        LAST_BORDER("^(?:(lb|lborder|lastborder)(?:_(h|b)(l|r|b|t))?)|(nlb|nolborder|nolastborder)$");
+        LAST_BORDER(
+                "^(?:(lb|lborder|lastborder)(?:_(h|header|b|body)(l|left|r|right|b|bottom|t|top))?)|(nlb|nolborder|nolastborder)$");
 
         /** The pattern that matches the parameter type's string representations. */
         private Pattern pattern;
@@ -332,8 +354,10 @@ public class TableConfiguration {
                         matcher.group(1) != null ? ContentStructure.POSITIONAL : ContentStructure.CATEGORICAL;
             } else if ((matcher = ParameterType.FILL_BEHAVIOR.getMatcher(parameter)).find()) {
                 tableConfig.fillBehavior =
-                        matcher.group(1) != null ? FillBehavior.SKIP : matcher.group(2) != null ? FillBehavior.STEP : matcher
-                                .group(3) != null ? FillBehavior.APPEND : matcher.group(4) != null ? FillBehavior.ADD : FillBehavior.PREPEND;
+                        matcher.group(1) != null ? FillBehavior.SKIP : matcher.group(2) != null ? FillBehavior.STEP : FillBehavior.WRITE;
+            } else if ((matcher = ParameterType.WRITE_BEHAVIOR.getMatcher(parameter)).find()) {
+                tableConfig.writeBehavior =
+                        matcher.group(1) != null ? WriteBehavior.APPEND : matcher.group(2) != null ? WriteBehavior.PREPEND : WriteBehavior.OVERWRITE;
             } else if ((matcher = ParameterType.CONTENT_DIRECTION.getMatcher(parameter)).find()) {
                 tableConfig.contentDirection = matcher.group(1) != null ? ContentDirection.VERTICAL : ContentDirection.HORIZONTAL;
             } else if ((matcher = ParameterType.STYLE_SOURCE.getMatcher(parameter)).find()) {
@@ -370,7 +394,8 @@ public class TableConfiguration {
     }
 
     private ContentStructure contentStructure = ContentStructure.CATEGORICAL;
-    private FillBehavior fillBehavior = FillBehavior.APPEND;
+    private FillBehavior fillBehavior = FillBehavior.WRITE;
+    private WriteBehavior writeBehavior = WriteBehavior.APPEND;
     private ContentDirection contentDirection = ContentDirection.VERTICAL;
     private LastBorderSourceSection lastBorderSourceSection = null;
     private CellBordersType lastBorderSourceType = null;
@@ -378,21 +403,29 @@ public class TableConfiguration {
     private TableCoordinate header = new TableCoordinate(0, 1);
 
     /**
-     * @return the current content structure parameter's value. The default value is <code>CATEGORICAL</code>.
+     * @return the current content structure parameter's value. The default value is {@link ContentStructure#CATEGORICAL
+     *         CATEGORICAL}.
      */
     public ContentStructure getContentStructure() {
         return contentStructure;
     }
 
     /**
-     * @return the current fill behavior parameter's value. The default value is <code>APPEND</code>.
+     * @return the current fill behavior parameter's value. The default value is {@link FillBehavior#WRITE WRITE}.
      */
     public FillBehavior getFillBehavior() {
         return fillBehavior;
     }
 
     /**
-     * @return the current content direction parameter's value. The default value is <code>VERTICAL</code>.
+     * @return the current write behavior parameter's value. The default value is {@link WriteBehavior#APPEND APPEND}.
+     */
+    public WriteBehavior getWriteBehavior() {
+        return writeBehavior;
+    }
+
+    /**
+     * @return the current content direction parameter's value. The default value is {@link ContentDirection#VERTICAL VERTICAL}.
      */
     public ContentDirection getContentDirection() {
         return contentDirection;
@@ -408,8 +441,9 @@ public class TableConfiguration {
 
     /**
      * @return the current last border source type parameter's value. This parameter should only be important if the last border
-     *         source section parameter is set to either <code>HEADER</code> or <code>BODY</code>. Matching the connected section
-     *         parameter, the default value is <code>null</code>.
+     *         source section parameter is set to either {@link LastBorderSourceSection#HEADER HEADER} or
+     *         {@link LastBorderSourceSection#BODY BODY}. Matching the connected section parameter, the default value is
+     *         <code>null</code>.
      */
     public CellBordersType getLastBorderSourceType() {
         return lastBorderSourceType;
