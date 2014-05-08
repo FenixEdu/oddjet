@@ -58,7 +58,7 @@ public class TableCall {
                     } catch (UnknownParameterTypeException e) {
                         logger.warn("Unknown Parameter " + param + " found while processing table call " + tableCall + ".");
                     } catch (IllegalTableParameterRepresentationException e) {
-                        // technically this is not possible...
+                        // technically this is not possible... but just in case...
                         throw new IllegalTableCallRepresentationException(tableCall);
                     }
                 }
@@ -94,6 +94,16 @@ public class TableCall {
      */
     public String getTableId() {
         return tableId;
+    }
+
+    /**
+     * Checks if a given string can be used as the name for a table data source.
+     * 
+     * @param name the name to be matched to the table data source notation.
+     * @return true only if the supplied name is a valid table data source name.
+     */
+    public static boolean isValidSourceName(String name) {
+        return TABLESOURCENAME.matcher(name).matches();
     }
 
 }

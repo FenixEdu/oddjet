@@ -8,6 +8,8 @@ package org.fenixedu.oddjet.exception;
  */
 public class IllegalTableParameterRepresentationException extends Exception {
 
+    private static final long serialVersionUID = 8888064852558814702L;
+
     /**
      * @param parameter the offending string.
      */

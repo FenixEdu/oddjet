@@ -10,6 +10,8 @@ import java.net.ConnectException;
  */
 public class OpenOfficeConnectionException extends Exception {
 
+    private static final long serialVersionUID = 218110374488459593L;
+
     public OpenOfficeConnectionException(ConnectException e) {
         super(e);
     }

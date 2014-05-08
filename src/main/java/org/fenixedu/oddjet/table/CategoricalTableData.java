@@ -28,7 +28,7 @@ public class CategoricalTableData implements TableData {
         List<List<Object>> data = new ArrayList<>();
         for (String key : order) {
             if (key != null) {
-                data.add(categoricalData.get(key));
+                data.add(new ArrayList<Object>(categoricalData.get(key)));
             } else {
                 data.add(null);
             }
@@ -40,7 +40,7 @@ public class CategoricalTableData implements TableData {
     public List<List<Object>> getData() {
         List<List<Object>> data = new ArrayList<List<Object>>();
         for (String key : categoricalData.keySet()) {
-            data.add(categoricalData.get(key));
+            data.add(new ArrayList<Object>(categoricalData.get(key)));
         }
         return data;
     }

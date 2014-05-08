@@ -37,24 +37,27 @@ public class TableConfiguration {
      * 
      */
     public static enum WriteBehavior {
-        /** Append data to last paragraph. */
+        /** Append data to last paragraph or place it in a new paragraph if there is none. */
         APPEND,
-        /** Prepend data to first paragraph. */
+        /** Prepend data to first paragraph or place it in a new paragraph if there is none. */
         PREPEND,
         /** Write over the cell contents. */
         OVERWRITE;
     }
 
     /**
-     * Specifies the type of content of the dynamic table, whether it is structured by position or categories.
+     * Specifies the way the table's data content is to be used to generate the table.
      * 
      * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
      * 
      */
     public static enum ContentStructure {
-        /** Content is structured, the categories to be used are specified in the table within the template. */
+        /**
+         * Use content as structured by position, data content will be used as a whole disregarding categorical structure and
+         * order.
+         */
         CATEGORICAL,
-        /** Content is positional, all content will be used for the table disregarding categorical structure. */
+        /** Use content as structured by categories, the categories to be used are specified within the table in the proper order. */
         POSITIONAL
     }
 
@@ -199,9 +202,9 @@ public class TableConfiguration {
          * The table content structure parameter type, see the {@link ContentStructure} enum for details. It matches the following
          * values:
          * <ul>
-         * <li>pos or positional - content is positional, corresponding to {@link ContentStructure#POSITIONAL
+         * <li>pos or positional - content structure is positional, corresponding to {@link ContentStructure#POSITIONAL
          * ContentStructure.POSITIONAL}</li>
-         * <li>cat or categorical - content is categorical, corresponding to {@link ContentStructure#CATEGORICAL
+         * <li>cat or categorical - content structure is categorical, corresponding to {@link ContentStructure#CATEGORICAL
          * ContentStructure.CATEGORICAL}</li>
          * </ul>
          */
@@ -229,8 +232,8 @@ public class TableConfiguration {
          * {@link WriteBehavior#APPEND WriteBehavior.APPEND}</li>
          * <li>ppd or prepend - write behavior is to prepend the data to the cell content, corresponding to
          * {@link WriteBehavior#PREPEND WriteBehavior.PREPEND}</li>
-         * <li>ovw or overwrite - write behavior is to prepend the data to the cell content, corresponding to
-         * {@link WriteBehavior#PREPEND WriteBehavior.PREPEND}</li>
+         * <li>ovw or overwrite - write behavior is to overwrite the cell content with the data, corresponding to
+         * {@link WriteBehavior#OVERWRITE WriteBehavior.OVERWRITE}</li>
          * </ul>
          */
         WRITE_BEHAVIOR("^(apd|append)|(ppd|prepend)|(ovw|overwrite)$"),
@@ -253,10 +256,10 @@ public class TableConfiguration {
          * values:
          * <ul>
          * <li>pre or prest or prestyled - the table is already styled as intended.</li>
-         * <li>vst or vertst or verticalstyle - the table is styled vertically, meaning styles vary between columns. The
-         * corresponding relative coordinates are (0,1) so the style is copied from the previous cell in the column.</li>
-         * <li>hst or horzst or horizontalstyle - the table is styled horizontally, meaning styles vary between columns. The
-         * corresponding relative coordinates are (1,0) so the style is copied from the previous cell in the row.</li>
+         * <li>vst or vertst or verticalstyle - the table is to be styled vertically, meaning styles vary only between columns.
+         * The corresponding relative coordinates are (0,1) so the style is copied from the previous cell in the column.</li>
+         * <li>hst or horzst or horizontalstyle - the table is to be styled horizontally, meaning styles vary only between
+         * columns. The corresponding relative coordinates are (1,0) so the style is copied from the previous cell in the row.</li>
          * <li>pst[col idx]_[row idx] or perdst[col idx]_[row idx] or periodicstyle[col idx]_[row idx] - the table is periodically
          * styled, meaning styles vary periodically between columns, rows or a combination of both. The corresponding relative
          * coordinates are specified by [col idx] and [row idx] so the style is copied from the cell that is [col idx] columns

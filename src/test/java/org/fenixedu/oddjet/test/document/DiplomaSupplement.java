@@ -5,8 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.fenixedu.oddjet.Template;
+import org.fenixedu.oddjet.exception.IllegalTemplateDataSourceNameException;
 import org.fenixedu.oddjet.exception.IllegalTemplateParameterNameException;
-import org.fenixedu.oddjet.table.ListTableData;
+import org.fenixedu.oddjet.table.EntryListTableData;
 import org.fenixedu.oddjet.table.PositionalTableData;
 import org.fenixedu.oddjet.test.bean.Observation;
 import org.fenixedu.oddjet.test.bean.ProgramCurricularUnit;
@@ -49,11 +50,11 @@ public class DiplomaSupplement extends Template {
             Observation obs = new Observation("1)", "Waka Waka");
             program.add(new ProgramCurricularUnit("2000/01", "Mais Materiais e cenas", "normal", "semestre", 6.0, 16, 16, obs
                     .getId()));
-            addTableDataSource("program", new ListTableData(program));
+            addTableDataSource("program", new EntryListTableData(program));
 
             List<Object> observations = new ArrayList<>();
             observations.add(obs);
-            addTableDataSource("program_observations", new ListTableData(observations));
+            addTableDataSource("program_observations", new EntryListTableData(observations));
 
             addParameter("classif_system_explanation", "É tipo uma escala de A a E com percentagens correspondentes e assim.");
 
@@ -76,6 +77,8 @@ public class DiplomaSupplement extends Template {
             addParameter("authenticator_name", "Tonecas");
             addParameter("authenticator_position", "Palhaço");
         } catch (IllegalTemplateParameterNameException e) {
+            e.printStackTrace();
+        } catch (IllegalTemplateDataSourceNameException e) {
             e.printStackTrace();
         }
 

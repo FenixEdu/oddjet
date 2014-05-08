@@ -8,6 +8,8 @@ package org.fenixedu.oddjet.exception;
  */
 public class IllegalTableCallRepresentationException extends Exception {
 
+    private static final long serialVersionUID = -5211681382628798508L;
+
     /**
      * @param tableCall the offending string.
      */

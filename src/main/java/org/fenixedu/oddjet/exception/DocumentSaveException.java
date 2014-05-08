@@ -8,6 +8,8 @@ package org.fenixedu.oddjet.exception;
  */
 public class DocumentSaveException extends Exception {
 
+    private static final long serialVersionUID = -1361743814032455200L;
+
     public DocumentSaveException(Exception e) {
         super(e);
     }

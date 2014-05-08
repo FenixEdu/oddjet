@@ -59,13 +59,15 @@ public class PositionalTableData implements TableData {
                 try {
                     i = Integer.parseInt(index);
                     dataList = this.data.get(i);
+                    data.add(new ArrayList<Object>(dataList));
                 } catch (NumberFormatException nfe) {
                     logger.error("Non-integer categories such as '" + index + "' are not supported.");
+                    data.add(null);
                 } catch (IndexOutOfBoundsException iobe) {
                     logger.error("Index is out of bounds: " + iobe.getMessage() + ".");
+                    data.add(null);
                 }
             }
-            data.add(dataList);
         }
         return data;
 

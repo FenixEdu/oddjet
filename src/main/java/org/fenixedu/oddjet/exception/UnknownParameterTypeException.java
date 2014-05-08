@@ -8,6 +8,8 @@ package org.fenixedu.oddjet.exception;
  */
 public class UnknownParameterTypeException extends Exception {
 
+    private static final long serialVersionUID = -2313858242771820619L;
+
     /**
      * @param parameter the offending string.
      */
