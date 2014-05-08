@@ -6,7 +6,7 @@ package org.fenixedu.oddjet.exception;
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
  * 
  */
-public class DocumentSaveException extends Exception {
+public class DocumentSaveException extends RuntimeException {
 
     private static final long serialVersionUID = -1361743814032455200L;
 

@@ -6,7 +6,7 @@ package org.fenixedu.oddjet.exception;
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
  * 
  */
-public class IllegalTemplateDataSourceNameException extends Exception {
+public class IllegalTemplateDataSourceNameException extends RuntimeException {
 
     private static final long serialVersionUID = -3593761419094326948L;
 
