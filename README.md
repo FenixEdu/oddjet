@@ -2,49 +2,50 @@
 
 Open Document Driven Java Empowered Templating
 
-###### Table of Contents
+##### Table of Contents
 
-* [Description and Goals](#description-and-goals)
+* [About](#about)
 * [Usage Instructions](#usage-instructions)
-	* The Template Class
-		* Template Data
-		* Instantiating, Converting to PDF and Saving
-			* OpenOffice Headless Process and Connection
-		* Instance Page Count
-	* Table Data Collection Classes
-	* User Fields for Single Data Parameters
-		* Data Parameter Name Matching
-		* Working Examples
-		* Notes, Caveats and Recommendations
-	* Tables for Data Collections
-		* Table Calls
-		* Table Configuration Parameter Types
-			* Header
-			* Content Structure
-			* Content Direction
-			* Fill Behavior
-			* Write Behavior
-			* Style Source
-			* Last Border
-		* Automatic Table-Dependent Template Data Parameters
-	* Conditional Content with Hidden/Conditional Text, Hidden Paragraphs and Hidden Sections
-	* Template Document Problems
-* LibreOffice Writer Tips and How To's
-	* Fields
-		* How to Create
-			* Notably Useful Field Types
-		* How to Delete a User Field
-		* How to Update Fields
-	* Tables
-	* Conditional Content
-		* Conditional and Hidden Text
-		* Hidden Paragraphs
-		* Hidden Sections
-* Links of Interest
-* Future Plans
+	* [The Template Class](#the-template-class)
+		* [Template Data](#template-data)
+		* [Instantiating, Converting to PDF and Saving](#instantiating-converting-to-pdf-and-saving)
+			* [OpenOffice Headless Process and Connection](#openOffice-headless-process-and-connection)
+		* [Instance Page Count](#instance-page-count)
+	* [Table Data Collection Classes](#table-data-collection-classes)
+	* [User Fields for Single Data Parameters](#user-fields-for-single-data-parameters)
+		* [Data Parameter Name Matching](#data-parameter-name-matching)
+		* [Working Examples](#working-examples)
+		* [Notes, Caveats and Recommendations](#notes-caveats-and-recommendations)
+	* [Tables for Data Collections](#tables-for-data-collections)
+		* [Table Calls](#Table Calls)
+		* [Table Configuration Parameter Types](#table-configuration-parameter-types)
+			* [Header](#header)
+			* [Content Structure](#content-structure)
+			* [Content Direction](#content-direction)
+			* [Fill Behavior](#fill-behavior)
+			* [Write Behavior](#write-behavior)
+			* [Style Source](#style-source)
+			* [Last Border](#last-border)
+		* [Automatic Table-Dependent Template Data Parameters](#automatic-table-dependent-template-data-parameters)
+	* [Conditional or Hidden Fields and Sections for Conditional Content](#conditional-or-hidden-fields-and-sections-for-conditional-content)
+	* [Template Document Problems](#template-document-problems)
+* [LibreOffice Writer Tips and How To's](#libreoffice-writer-tips-and-how-tos)
+	* [Fields](#fields)
+		* [Creating](#creating)
+			* [Notably Useful Field Types](#notably-useful-field-types)
+		* [Deleting](#deleting)
+		* [Updating](#updating)
+	* [Tables](#tables)
+	* [Conditional Content Structures](#conditional-content-structures)
+		* [Conditional Text](#conditional-text)
+		* [Hidden Text](#hidden-text)
+		* [Hidden Paragraphs](#hidden-paragraphs)
+		* [Hidden Sections](#hidden-sections)
+* [Links of Interest](#links-of-interest)
+* [Future Plans](#future-plans)
 
 
-## Description
+## About
 
 ODDJET is a Java templating API that works with Open Document Text format files designed to answer the [FenixEdu](http://fenixedu.org/) project's needs in academic and administrative document templating.
 
@@ -322,14 +323,14 @@ After a table is created the following data parameters are automatically inserte
 
 These are meant to be used as user fields or in conditional structures that are dependent of the table's dimensions.
 
-### Conditional Content with Hidden/Conditional Text, Hidden Paragraphs and Hidden Sections
+### Conditional or Hidden Fields and Sections for Conditional Content
 
-ODDJET does not have any special mechanisms to deal with conditional content, relying completely on the structures made available in the ODF specification. To achieve proper separation of responsibilities most if not all the logic concerning the documents contents should be dealt with through these structures.
+ODDJET does not have any special mechanisms to deal with conditional content, relying completely on the structures made available in the ODF specification for the effect. To achieve proper separation of responsibilities most if not all the logic concerning the documents contents should be dealt with through them.
 
 The most common structures available are:
-* Conditional Text - Allows to choose between two text spans based on a condition. Only regular text is allowed and both text spans are formated equaly and uniformely.
-* Hidden Text - Hides a span of text based on a condition. Only regular text is allowed.
-* Hidden Paragraph - Hides a paragraph of text based on a condition. The paragraph has no outstanding limitations.
+* Conditional Text Field - Allows to choose between two text spans based on a condition. Only regular text is allowed and both text spans are formated equaly and uniformely.
+* Hidden Text Field - Hides a span of text based on a condition. Only regular text is allowed.
+* Hidden Paragraph Field - Hides the paragraph of text where it is located based on a condition. The paragraph has no outstanding limitations.
 * Hidden Sections - Hides an entire section of the document based on a condition. The section has no outstanding limitations.
 
 These structures do not always cover all our needs, in which case it is necessary to include some logic while passing data to the Template class object, or force us to create complicated structures to realize simple logic tasks. An example of such a case is the inability to include fields in conditional or hidden text and of different formats in the former, forcing the duplication of the complete paragraph and the use of hidden paragraphs with opposing conditions. Future plans include implementing a solution to simplify these cases and improve the user experience.
@@ -358,7 +359,7 @@ This section gives some tips and explains how to use and create the odt format s
 
 ### Fields
 
-#### How to Create
+#### Creating
 
 * Access the Fields window via the menu Insert > Fields > Other... or by hitting Ctrl-F2.
 * Pick the type of field by choosing the tab and corresponding type within the tab.
@@ -377,21 +378,23 @@ Creating user fields is easy using the method above, however since these are use
 * Functions > Hidden Text/Conditional Text/Hidden Paragraph - To develop conditional content.
 * Document  > Date/Page/Statistics/Time - To avoid passing these types of data through parameters without need.
 
-#### How to Delete a User Field
+#### Deleting
 
-To delete a user field deleting it in the text is not sufficient. To remove the field completely it's necessary to select it in the Fields Window and click the red X button close to the field's value. This button is only available if there are no instances of the field in the text.
+Most fields can be deleted just by removing them from the text, however to delete a user field this is not sufficient. To remove the field completely it's necessary to select it in the Fields Window and click the red X button close to the field's value. This button is only available if the field is not used in the text.
 
 Be careful when removing certain user fields since it is possible to remove those that are present only within conditions of sections or other fields. This does not result in an error, just in the field not being filled with the template parameter's data, possibly causing the involved conditions to evaluate erroneously.
 
-#### How to Update Fields
+#### Updating
 
-Sometimes, after the field's value has changed, the change is not reflected on the text instances of the field immediately. If necessary, field value updates can be forced by selecting in the menu Tools > Update > Fields or by hitting F9.
+Sometimes, after the field's value has changed, the change is not reflected on the text instances of the field immediately. If necessary, field value updates can be forced by selecting in the menu Tools > Update > Fields or by pressing F9.
 
 ### Tables
 
 ### Conditional Content
 
-#### Conditional and Hidden Text
+#### Conditional Text
+
+#### Hidden Text
 
 #### Hidden Paragraphs
 
