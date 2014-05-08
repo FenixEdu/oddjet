@@ -108,11 +108,9 @@ public class Template {
      * 
      * @param filePath the path to the template file.
      * @param locale the template's locale.
-     * @throws SecurityException if read access to the file is denied.
-     * @throws IOException if the file could not be read, possibly because it does not exist
-     *             (a <code>FileNotFoundException</code>).
+     * @throws DocumentLoadException if the file at filePath could not be read.
      */
-    public Template(String filePath, Locale locale) throws SecurityException, IOException {
+    public Template(String filePath, Locale locale) throws DocumentLoadException {
         setDocument(filePath);
         setLocale(locale);
     }
@@ -121,11 +119,9 @@ public class Template {
      * Constructs a Template reading a template file from a given file path and with the default locale.
      * 
      * @param filePath the path to the template file.
-     * @throws SecurityException if read access to the file is denied.
-     * @throws IOException if the file could not be read, possibly because it does not exist
-     *             (a <code>FileNotFoundException</code>).
+     * @throws DocumentLoadException if the file at filePath could not be read.
      */
-    public Template(String filePath) throws SecurityException, IOException {
+    public Template(String filePath) throws DocumentLoadException {
         this(filePath, Locale.getDefault());
     }
 
@@ -134,11 +130,9 @@ public class Template {
      * 
      * @param file the template file.
      * @param locale the template's locale.
-     * @throws SecurityException if read access to the file is denied.
-     * @throws IOException if the file could not be read, possibly because it does not exist
-     *             (a <code>FileNotFoundException</code>).
+     * @throws DocumentLoadException if the file could not be read.
      */
-    public Template(File file, Locale locale) throws SecurityException, IOException {
+    public Template(File file, Locale locale) throws DocumentLoadException {
         setDocument(file);
         setLocale(locale);
     }
@@ -148,10 +142,9 @@ public class Template {
      * 
      * @param file the template file.
      * @throws SecurityException if read access to the file is denied.
-     * @throws IOException if the file could not be read, possibly because it does not exist
-     *             (a <code>FileNotFoundException</code>).
+     * @throws DocumentLoadException if the file could not be read.
      */
-    public Template(File file) throws SecurityException, IOException {
+    public Template(File file) throws DocumentLoadException {
         this(file, Locale.getDefault());
     }
 
@@ -160,9 +153,9 @@ public class Template {
      * 
      * @param fileStream the stream to read the template file.
      * @param locale the template's locale.
-     * @throws IOException if the file could not be read from the stream.
+     * @throws DocumentLoadException if the file could not be read from the stream.
      */
-    public Template(InputStream fileStream, Locale locale) throws IOException {
+    public Template(InputStream fileStream, Locale locale) throws DocumentLoadException {
         setDocument(fileStream);
         setLocale(locale);
     }
@@ -171,9 +164,9 @@ public class Template {
      * Constructs a Template reading the template file from a given InputStream and with the default locale.
      * 
      * @param fileStream the stream to read the template file.
-     * @throws IOException if the file could not be read from the stream.
+     * @throws DocumentLoadException if the file could not be read from the stream.
      */
-    public Template(InputStream fileStream) throws IOException {
+    public Template(InputStream fileStream) throws DocumentLoadException {
         this(fileStream, Locale.getDefault());
     }
 
@@ -181,11 +174,9 @@ public class Template {
      * Reads and sets the template document from the file at the given filePath.
      * 
      * @param filePath the path to the template file.
-     * @throws SecurityException if read access to the file is denied.
-     * @throws IOException if the file could not be read, possibly because it does not exist
-     *             (a <code>FileNotFoundException</code>).
+     * @throws DocumentLoadException if the file at filePath could not be read.
      */
-    public void setDocument(String filePath) throws SecurityException, IOException {
+    public void setDocument(String filePath) throws DocumentLoadException {
         setDocument(new File(filePath));
     }
 
@@ -193,24 +184,30 @@ public class Template {
      * Reads and sets the template document from the given file.
      * 
      * @param file the template file.
-     * @throws SecurityException if read access to the file is denied.
-     * @throws IOException if the file could not be read, possibly because it does not exist
-     *             (a <code>FileNotFoundException</code>).
+     * @throws DocumentLoadException if the file could not be read.
      */
-    public void setDocument(File file) throws SecurityException, IOException {
+    public void setDocument(File file) throws DocumentLoadException {
         setPath(file.getAbsolutePath());
-        setDocument(new FileInputStream(file));
+        try {
+            setDocument(new FileInputStream(file));
+        } catch (SecurityException | FileNotFoundException e) {
+            throw new DocumentLoadException(e);
+        }
     }
 
     /**
      * Reads and sets the template document from the given InputStream.
      * 
      * @param fileStream the stream to read the template file.
-     * @throws IOException if the file could not be read from the stream.
+     * @throws DocumentLoadException if the file could not be read from the stream.
      */
-    public void setDocument(InputStream fileStream) throws IOException {
+    public void setDocument(InputStream fileStream) throws DocumentLoadException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
-        IOUtils.copy(fileStream, ostream);
+        try {
+            IOUtils.copy(fileStream, ostream);
+        } catch (IOException e) {
+            throw new DocumentLoadException(e);
+        }
         this.bytes = ostream.toByteArray();
     }
 
