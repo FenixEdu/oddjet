@@ -8,7 +8,7 @@ import java.net.ConnectException;
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
  * 
  */
-public class OpenOfficeConnectionException extends Exception {
+public class OpenOfficeConnectionException extends RuntimeException {
 
     private static final long serialVersionUID = 218110374488459593L;
 
