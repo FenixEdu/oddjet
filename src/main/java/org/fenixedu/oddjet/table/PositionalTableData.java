@@ -23,9 +23,9 @@ public class PositionalTableData implements TableData {
      * @param data an Iterable of Object Iterables where each Object Iterable corresponds to a column/row of the table and each
      *            Object to a cell's data.
      */
-    public PositionalTableData(Iterable<Iterable<Object>> data) {
+    public PositionalTableData(Iterable<Iterable> data) {
         this.data = new ArrayList<List<Object>>();
-        for (Iterable<Object> it : data) {
+        for (Iterable it : data) {
             List<Object> list = new ArrayList<>();
             for (Object o : it) {
                 list.add(o);

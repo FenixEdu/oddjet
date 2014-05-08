@@ -21,7 +21,7 @@ public class EntryListTableData implements TableData {
      * @param data an Object Iterable containing the entry objects. Each entry object corresponds to a column/row in the table and
      *            its attributes can be used as categories.
      */
-    public EntryListTableData(Iterable<Object> data) {
+    public EntryListTableData(Iterable data) {
         this.data = new ArrayList<>();
         for (Object o : data) {
             this.data.add(o);

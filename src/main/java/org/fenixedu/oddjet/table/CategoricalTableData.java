@@ -12,14 +12,14 @@ import java.util.Map;
  */
 public class CategoricalTableData implements TableData {
 
-    private Map<String, List<Object>> categoricalData;
+    private Map<String, List> categoricalData;
 
     /**
      * Constructs a CategoricalTableData from a mapping of category string representations to data object lists
      * 
      * @param data a mapping of category string representations to data object lists
      */
-    public CategoricalTableData(Map<String, List<Object>> data) {
+    public CategoricalTableData(Map<String, List> data) {
         this.categoricalData = data;
     }
 
