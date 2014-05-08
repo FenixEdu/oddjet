@@ -19,7 +19,7 @@ public class OddjetTest {
         t.addParameter("title1", "Person Registry");
         t.addParameter("title2", "Courses Registry");
 
-        HashMap<String, List<Object>> tdata = new HashMap<>();
+        HashMap<String, List> tdata = new HashMap<>();
         List<Object> name = new ArrayList<>();
         name.add("Mariana");
         name.add("João");
@@ -45,7 +45,7 @@ public class OddjetTest {
         tdata.put("age", age);
         tdata.put("gender", gender);
 
-        HashMap<String, List<Object>> tdata2 = new HashMap<>();
+        HashMap<String, List> tdata2 = new HashMap<>();
         List<Object> course = new ArrayList<>();
         course.add("OpenOffice");
         course.add("Microsoft Office");
