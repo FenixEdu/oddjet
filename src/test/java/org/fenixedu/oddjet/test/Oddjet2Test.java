@@ -7,7 +7,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OddjetTest2 {
+public class Oddjet2Test {
 
     @Test
     public void doIt() throws Exception {

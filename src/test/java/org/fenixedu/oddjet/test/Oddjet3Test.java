@@ -12,7 +12,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OddjetTest3 {
+public class Oddjet3Test {
 
     private Person person;
     private localeObject randW;
