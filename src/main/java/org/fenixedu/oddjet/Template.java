@@ -38,7 +38,6 @@ import org.fenixedu.oddjet.table.TableConfiguration.ContentStructure;
 import org.fenixedu.oddjet.table.TableConfiguration.LastBorderSourceSection;
 import org.fenixedu.oddjet.table.TableCoordinate;
 import org.fenixedu.oddjet.table.TableData;
-import org.odftoolkit.odfdom.converter.core.utils.IOUtils;
 import org.odftoolkit.odfdom.dom.OdfMetaDom;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
@@ -61,6 +60,7 @@ import com.artofsolving.jodconverter.DocumentFormat;
 import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
+import com.google.common.io.ByteStreams;
 
 /**
  * Contains a template file along with the teplate's data and locale, allowing creating instances of the original template
@@ -204,7 +204,7 @@ public class Template {
     public void setDocument(InputStream fileStream) throws DocumentLoadException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         try {
-            IOUtils.copy(fileStream, ostream);
+            ByteStreams.copy(fileStream, ostream);
         } catch (IOException e) {
             throw new DocumentLoadException(e);
         }

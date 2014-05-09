@@ -7,14 +7,16 @@ import java.io.OutputStream;
 
 import org.fenixedu.oddjet.Template;
 import org.fenixedu.oddjet.test.document.DiplomaSupplement;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OddjetTest4 {
+public class Oddjet4Test {
 
     @Test
+    @Ignore
     public void doIt() throws Exception {
         Template t = new DiplomaSupplement("./src/test/resources/diplomaSupplement.odt");
         t.getInstancePageCount();
