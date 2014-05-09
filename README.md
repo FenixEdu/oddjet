@@ -5,6 +5,8 @@ Open Document Driven Java Empowered Templating
 ##### Table of Contents
 
 * [About](#about)
+* [Quickstart](#quickstart)
+	* [TL;DR](#tldr)
 * [Usage Instructions](#usage-instructions)
 	* [The Template Class](#the-template-class)
 		* [Template Data](#template-data)
@@ -29,6 +31,7 @@ Open Document Driven Java Empowered Templating
 		* [Automatic Table-Dependent Template Data Parameters](#automatic-table-dependent-template-data-parameters)
 	* [Conditional or Hidden Fields and Sections for Conditional Content](#conditional-or-hidden-fields-and-sections-for-conditional-content)
 	* [Template Document Problems](#template-document-problems)
+	* [Logging](#logging)
 * [LibreOffice Writer Tips and How To's](#libreoffice-writer-tips-and-how-tos)
 	* [Fields](#fields)
 		* [Creating](#creating)
@@ -51,9 +54,59 @@ ODDJET is a Java templating API that works with Open Document Text format files 
 
 By using odt format documents ODDJET intends to provide an easier and more familiar interface for template document creation. This simplifies the implementation of the standards that official documents are subject to as well as permit a more direct involvement of the departments and persons responsible for the official specifications in this process. To aid in this capacity ODDJET also promotes the separation of the logic and formatting of a document from the data insertion process as much as possible.
 
+## Quickstart
+
+Assuming you have a Maven Project, to start using ODDJET you just need to add the ODDJET dependency to its pom.xml:
+
+	<dependency>
+		<groupId>org.fenixedu</groupId>
+        <artifactId>oddjet</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+
+Once this is done the project has access to the ODDJET classes and you can start using them to populate your own templates. Let's create a simple use case to use ODDJET in. Imagine you manage a social group and want to produce for each person in the group a simple pdf document entitled "Contacts - _<name>_" with a table containing the person's contacts' name, age and email.
+
+Start by producing your own template document, let's call it "Contacts.odt", containing a user field in the title named "person.name" (after "Contacts -") and a table below named "contacts" with three columns and 2 rows. In the top row of this table you can write the headers "Name","Age" and "Email Address" while in the bottom row you must write the names of the information categories you want in those rows "name","age" and "email". You can change the header names freely but the category, user field and table names will be linked to your java code so be careful.
+	* The sections [User Fields for Single Data Parameters](#user-fields-for-single-data-parameters) and [Tables for Data Collections](#tables-for-data-collections) can help to understand the reason behind these constructs and all the options you have with them. Also, an example of a template file meeting our criteria is located [here](https://github.com/FenixEdu/oddjet/tree/master/src/examples/quickstart/templates/Contacts.odt).
+
+Next, if you're really just imagining this use case, you'll need to build a simple domain with some persons and their contact relations. For our example's needs this domain is required only to contain a collection of objects representing persons, each with accessible attributes for their name, age, email and contacts (a list of known persons).
+	* Here "accessible" doesn't necessarily mean public, they can also be accessible via getter methods or in other ways (Check the [Data Parameter Name Matching](#data-parameter-name-matching) section for details). I've created a very simple domain for this, available [here](#https://github.com/FenixEdu/oddjet/tree/master/src/example/quickstart/java/domain), just covering the example's basic needs.
+
+If you don't have one already, create the main class and function in your project. The first step in the function should be to get or create the domain.
+Having the domain ready we can start using ODDJET to produce our PDFs. To do so first create a Template class object linked to your template document:
+
+		Template template = new Template("/path/to/template/Contacts.odt");
+The template object already contains the template document so, to avoid having to read that file again, let's use this same object to create the pdf instances for all of our domain's persons. For each person, your code must pass all relevant data to the template, produce the pdf file and clear all the data in the template again. Let's go one step at a time, beginning with passing the data:
+	
+        template.addParameter("person", targetPerson);
+		template.addTableDataSource("contacts", new EntryListTableData(targetPerson.contacts));
+In this code we are first adding the person we are creating the pdf for as a parameter simply named "person" and then their contacts (wrapped in one of the [Table Data Collection Classes](#table-data-collection-classes) ODDJET provides) as a table's data source named "contacts". These names might ring a bell, the parameter "person" should be used in the "person.name" user field to obtain our target's name while the "contacts" data source should be used to populate the "contacts" table! And that's it for passing our data. Before moving on it's worth mentioning that the choosing the <code>EntryListTableData</code> class to wrap our contact data was highly dependent on the way we have implemented the contact relationship. For other circumstances another of the provided <code>TableData</code> classes may be more appropriate or you can always implement your own class for the job, check the link above for details.
+
+Now, how to produce and save our pdf file:
+
+		template.saveInstancePDF("path/to/pdf/" + targetPerson.name + " Contacts.pdf");
+It looks very simple but a lot is going on behind the scenes here. First the template is instantiated, being read internally into a proper structure and having it's fields and tables populated there, then the resulting template instance is sent to an external process to be converted to a pdf, received back and finally saved to disk at the file path you specified. The Template class offers multiple similarly simple methods to obtain the instance and its pdf and also to save any of them to disk or to a stream, read about it in the [Instantiating, Converting to PDF and Saving](#instantiating-converting-to-pdf-and-saving) section. As mentioned above you'll need an external process whenever you need a pdf though, this is because ODDJET relies on a pre-existing OpenOffice process to make the conversion from odt to pdf. You can read more about it on the [OpenOffice Headless Process and Connection](#openOffice-headless-process-and-connection) subsection. For now, providing you have libreoffice or openoffice installed, you can just blindly run the following command on a terminal:
+
+	$ soffice --headless --accept="socket,host=<host>,port=<port>;urp;"
+Take care to do this after closing the template document and any other processes of Libre/OpenOffice or it will not work.
+
+Finally we should clean up our template object before repeating the process with the next person. However, we don't really have to in this case. Since we keep using the same parameter names and the <code>add</code> methods overwrite any previous information there will be no complaints or accumulating of old data if we just skip this step. Still, for educational purposes, here's how we could do this:
+
+	template.removeParameter("person");
+    template.removeTableDataSource("contacts");
+or
+
+	template.clearParameters();
+    template.clearTableDataSources();
+
+With this you should have all the necessary knowledge to finish and run this example. If you have any doubts check out our [main class](#https://github.com/FenixEdu/oddjet/tree/master/src/example/quickstart/java/main/Example.java). 
+
+<a id="tldr"></a>
+**TL;DR?** _Check and run the example files [here](https://github.com/FenixEdu/oddjet/tree/master/src/examples/quickstart/)!_
+
 ## Usage Instructions
 
-The general method to use ODDJET for templating is simple:
+As demonstrated in the [Quickstart](#quickstart) section, the general method to use ODDJET for templating is simple:
 
 * Write a template document in odt format following the rules established by ODDJET for its variable structures.
 * Construct a Template class (or superclass) object.
@@ -61,7 +114,7 @@ The general method to use ODDJET for templating is simple:
 * Pass it the data required for the document.
 * Call the appropriate Template class methods to fill the template document's variable structures with the data and save the resulting document instance.
 
-In the following sections different aspects and components of ODDJET are explained, detailing all the necessary information to follow the steps above and use ODDJET efficiently. We'll begin by exploring the main API classes for ODDJET, the template class and the table data source classes, followed by the more important template document structures to use with ODDJET, also unveiling a bit of the internal workings of ODDJET and how they affect or are affected by these structures, and finish with some problems that may arise while using some template documents and how they can be fixed.
+From here on each section will focus on explaining aspects and components of ODDJET in detail, containing all the necessary information to follow the steps above and use ODDJET efficiently. We'll begin by exploring the main API classes for ODDJET, the template class and the table data source classes, followed by the more important template document structures to use with ODDJET, also unveiling a bit of the internal workings of ODDJET and how they affect or are affected by these structures, then we'll expose some problems that may arise while using some template documents (and how to solve them) and finally we explain how it is possible to be more aware of what is happening behind the scenes and to detect errors with more ease by activating the log.
 
 ### The Template Class
 
@@ -351,7 +404,13 @@ The second and third issues stem from unrecognized or unexistent inner component
 
 It is recommended to backup the original documents before running the script because if any problem occurrs in the process the templates may be left in an inconsistent state.
 
-Note that all scripts present in the directory linked above must be next to the hotfix script since they are used in it. Also note that there may be python scripts requiring python 3 to be installed in the system to run.  
+Note that all scripts present in the directory linked above must be next to the hotfix script since they are used in it. Also note that there may be python scripts requiring python 3 to be installed in the system to run.
+
+### Logging
+
+As can be inferred from the previous sections, ODDJET is very permissive and ignores most errors or suspicious constructs it finds on the template document. This may lead to some confusion when resulting documents appear to have missing or incorrect information. To avoid this ODDJET makes use of the logging abstractions of [SLF4J](http://www.slf4j.org/) to inform the user of any noteworthy events in the instantiation process whenever required. SLF4J is very flexible and, by supporting multiple logging frameworks, gives you the freedom to control the application's logs as you wish.
+
+To quickly and easily enable logging all that is required is to place one of the SLF4J bindings jars (like _slf4j-simple.jar_ for example) in the application's classpath. These bindings can be extracted from the SLF4J distribution that you can [download here](http://www.slf4j.org/download.html). For more information on how to configure SLF4j and the underlying logging frameworks check out their [documentation](http://www.slf4j.org/docs.html). SLF4J's [short manual](http://www.slf4j.org/manual.html) is a great place to start. 
 
 ## LibreOffice Writer Tips and How To's
 
@@ -389,17 +448,13 @@ Be careful when removing certain user fields since it is possible to remove thos
 Sometimes, after the field's value has changed, the change is not reflected on the text instances of the field immediately. If necessary, field value updates can be forced by selecting in the menu Tools > Update > Fields or by pressing F9.
 
 ### Tables
-
+![under construction](http://upload.wikimedia.org/wikipedia/commons/2/20/UnderCon_icon.svg "Under Construction!")
 ### Conditional Content
-
+![under construction](http://upload.wikimedia.org/wikipedia/commons/2/20/UnderCon_icon.svg "Under Construction!")
 #### Conditional Text
-
 #### Hidden Text
-
 #### Hidden Paragraphs
-
 #### Hidden Sections
-
 ## Links of Interest
 
 * [LibreOffice Writer Guide 4.0](https://wiki.documentfoundation.org/images/3/35/WG40-WriterGuideLO.pdf)
@@ -407,6 +462,7 @@ Sometimes, after the field's value has changed, the change is not reflected on t
 * [LibreOffice Community Support](http://www.libreoffice.org/get-help/community-support/)
 	* [Ask.LibreOffice](http://ask.libreoffice.org/en/questions/)
 	* [The Document Foundation Wiki](https://wiki.documentfoundation.org/Main_Page)
+* [Simple Logging Facade for Java (SLF4J)](http://www.slf4j.org/)
 
 For developers:
 * [Apache ODF Toolkit (incubating)](http://incubator.apache.org/odftoolkit/simple/) - 
@@ -417,5 +473,19 @@ For developers:
 	* [Open Document Format v1.2](http://docs.oasis-open.org/office/v1.2/OpenDocument-v1.2.pdf)
 * [JODConverter](http://www.artofsolving.com/opensource/jodconverter)
 
-
 ## Future Plans
+![under construction](http://upload.wikimedia.org/wikipedia/commons/2/20/UnderCon_icon.svg)
+<!--
+* paragraphs, bullet/numbered enumerations
+* extend category format to include all the attribute chain functionality on all TableData cases
+* better approach to first/last borders
+* template cells
+* textual logic constructs.
+* Allow indexed access to iterable Object's content's via the field names.
+* data ordering
+* do more statistics methods like get page count. Maybe do some kind of cache for them so that a call to one already populates the values of others until template contents are changed.
+* find solutions to all the problems with the simple api and the odt format.
+* use the log more often! (INFO level)
+* expose more conversions?
+* improve the separation of the formatting and logic from the java and the simplicity of the template by deducing some of the table parameters and maybe
+--> 

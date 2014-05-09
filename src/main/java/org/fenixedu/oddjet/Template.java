@@ -798,6 +798,7 @@ public class Template {
                         case OVERWRITE:
                             cell.removeTextContent();
                             cell.addParagraph(translate(dataCategory.get(j), locale));
+                            break;
                         default:
                             logger.error("Atempted to use unimplemented Write Behavior: " + tp.getWriteBehavior().name() + ".");
                         }
