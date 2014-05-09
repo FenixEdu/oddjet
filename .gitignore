@@ -1,6 +1,19 @@
+
+
 *.class
 
 # Package Files #
 *.jar
 *.war
 *.ear
+
+# Eclipse Files #
+.classpath
+.project
+.settings/
+.pydevproject
+.README.md.html
+
+# Build Directories #
+/target
+/doc
