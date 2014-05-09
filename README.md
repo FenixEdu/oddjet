@@ -6,7 +6,7 @@ Open Document Driven Java Empowered Templating
 
 * [About](#about)
 * [Quickstart](#quickstart)
-	* [TL;DR](#tldr)
+	* [TL;DR?](#tldr)
 * [Usage Instructions](#usage-instructions)
 	* [The Template Class](#the-template-class)
 		* [Template Data](#template-data)
@@ -101,8 +101,8 @@ or
 
 With this you should have all the necessary knowledge to finish and run this example. If you have any doubts check out our [main class](#https://github.com/FenixEdu/oddjet/tree/master/src/example/quickstart/java/main/Example.java). 
 
-<a id="tldr"></a>
-**TL;DR?** _Check and run the example files [here](https://github.com/FenixEdu/oddjet/tree/master/src/examples/quickstart/)!_
+###### TL;DR?
+_Check and run the [example files](https://github.com/FenixEdu/oddjet/tree/master/src/examples/quickstart/)!_
 
 ## Usage Instructions
 
