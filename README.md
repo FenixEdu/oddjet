@@ -66,9 +66,9 @@ Assuming you have a Maven Project, to start using ODDJET you just need to add th
 
 Once this is done the project has access to the ODDJET classes and you can start using them to populate your own templates. Let's create a simple use case to use ODDJET in. Imagine that you manage a social group and want to produce for each person in the group a simple pdf document entitled "Contacts - _<name>_" with a table containing the person's contacts' name, age and email.
 
-Start by producing your own template document, let's call it "Contacts.odt", containing a user field in the title named "person.name" (after "Contacts -") and a table below named "contacts" with three columns and 2 rows. In the top row of this table you can write the headers "Name","Age" and "Email Address" while in the bottom row you must write the names of the information categories you want in those rows "name","age" and "email". You can change the header names freely but the category, user field and table names will be linked to your java code so be careful. The sections [User Fields for Single Data Parameters](#user-fields-for-single-data-parameters) and [Tables for Data Collections](#tables-for-data-collections) can help understand the reason behind these constructs and all the options you have with them. Also, we provide an [example template file](https://github.com/FenixEdu/oddjet/tree/master/src/examples/quickstart/templates/Contacts.odt) meeting our criteria.
+Start by producing your own template document, let's call it "Contacts.odt", containing a user field in the title named "person.name" (after "Contacts -") and a table below named "contacts" with three columns and 2 rows. In the top row of this table you can write the headers "Name","Age" and "Email Address" while in the bottom row you must write the names of the information categories you want in those rows "name","age" and "email". You can change the header names freely but the category, user field and table names will be linked to your java code so be careful. The sections [User Fields for Single Data Parameters](#user-fields-for-single-data-parameters) and [Tables for Data Collections](#tables-for-data-collections) can help understand the reason behind these constructs and all the options you have with them. Also, we provide an [example template file](src/examples/quickstart/templates/Contacts.odt) meeting our criteria.
 
-Next, if you're really just imagining this use case, you'll need to build a simple domain with some persons and their contact relations. For our example's needs this domain is required only to contain a collection of objects representing persons, each with accessible attributes for their name, age, email and contacts (a list of known persons). Here "accessible" doesn't necessarily mean public, they can also be accessible via getter methods or in other ways (Check the [Data Parameter Name Matching](#data-parameter-name-matching) section for details). We have created a very [simple domain](https://github.com/FenixEdu/oddjet/tree/master/src/example/quickstart/java/domain) for this, just covering the example's basic needs.
+Next, if you're really just imagining this use case, you'll need to build a simple domain with some persons and their contact relations. For our example's needs this domain is required only to contain a collection of objects representing persons, each with accessible attributes for their name, age, email and contacts (a list of known persons). Here "accessible" doesn't necessarily mean public, they can also be accessible via getter methods or in other ways (Check the [Data Parameter Name Matching](#data-parameter-name-matching) section for details). We have created a very [simple domain](src/example/quickstart/java/domain) for this, just covering the example's basic needs.
 
 If you don't have one already, create the main class and function in your project. The first step in the function should be to get or create the domain.
 Having the domain ready we can start using ODDJET to produce our PDFs. To do so first create a Template class object linked to your template document:
@@ -97,11 +97,11 @@ or
 	template.clearParameters();
     template.clearTableDataSources();
 
-With this you should have all the necessary knowledge to finish and run this example. If you have any doubts check out our [main class](#https://github.com/FenixEdu/oddjet/tree/master/src/example/quickstart/java/main/Example.java). 
+With this you should have all the necessary knowledge to finish and run this example. If you have any doubts check out our [main class](src/example/quickstart/java/main/Example.java). 
 
 ###### TL;DR?
 
-_Check and run the [example files](https://github.com/FenixEdu/oddjet/tree/master/src/examples/quickstart/)!_
+_Check and run the [example files](src/examples/quickstart/)!_
 
 ## Usage Instructions
 
@@ -153,7 +153,7 @@ To launch one of these services it is only necessary to have libreoffice or open
 
 Here the <code>--headless</code> flag is what makes this soffice process a pure service with no GUI or default document. The <code>--accept</code> flag specifies the types of connections the service accepts. In this flag's value, _<port>_ is the configured port for the service and _<host>_ is either the configured host address or, more simply, <code>0</code> meaning connections are accepted from all available network interfaces. To be more specific the <code>--accept</code> flag's value is formatted as part of a [UNO URL](http://www.openoffice.org/udk/common/man/spec/uno-url.html), consisting of its the connection and protocol parts. So far, ODDJET only accepts socket connection types and the urp protocol so these are constant in the code above. 
 
-The example bash script file [here](https://github.com/FenixEdu/oddjet/blob/master/src/main/scripts/OpenOfficeService.sh) runs this command with the default module configuration for the host and port. 
+The example bash script file [here](src/main/scripts/OpenOfficeService.sh) runs this command with the default module configuration for the host and port. 
 
 Please note that when headless soffice services are already running normal soffice processes will silently fail to run and vice-versa.
 
@@ -397,7 +397,7 @@ The API ODDJET relies on to modify the odt files recently has some issues proces
 
 The first issue for now remains untreated because it is purely API dependent. It is recommended not to use these types of borders in dynamic tables.
 
-The second and third issues stem from unrecognized or unexistent inner components of the odt file, meaning they can be avoided by sanitizing the template odt files. To fix these issues quickly we provide a bash script [here](https://github.com/FenixEdu/oddjet/tree/master/src/main/scripts/template/hotfix), hotfix.sh. To use this script simply call it with the path to the template directory and the target template file name as arguments, for example:
+The second and third issues stem from unrecognized or unexistent inner components of the odt file, meaning they can be avoided by sanitizing the template odt files. To fix these issues quickly we provide a bash script [here](src/main/scripts/template/hotfix), hotfix.sh. To use this script simply call it with the path to the template directory and the target template file name as arguments, for example:
 
 	$ hotfix.sh ./templates TemplateExample.odt
 
