@@ -71,7 +71,7 @@ Start by producing your own template document, let's call it "Contacts.odt", con
 Next, if you're really just imagining this use case, you'll need to build a simple domain with some persons and their contact relations. For our example's needs this domain is required only to contain a collection of objects representing persons, each with accessible attributes for their name, age, email and contacts (a list of known persons). Here "accessible" doesn't necessarily mean public, they can also be accessible via getter methods or in other ways (Check the [Data Parameter Name Matching](#data-parameter-name-matching) section for details). We have created a very [simple domain](src/example/quickstart/java/domain) for this, just covering the example's basic needs.
 
 If you don't have one already, create the main class and function in your project. The first step in the function should be to get or create the domain.
-Having the domain ready we can start using ODDJET to produce our PDFs. To do so first create a Template class object linked to your template document:
+Having the domain ready we can start using ODDJET to produce our pdf files. To do so first create a Template class object linked to your template document:
 
 		Template template = new Template("/path/to/template/Contacts.odt");
 The template object already contains the template document so, to avoid having to read that file again, let's use this same object to create the pdf instances for all of our domain's persons. For each person, your code must pass all relevant data to the template, produce the pdf file and clear all the data in the template again. Let's go one step at a time, beginning with passing the data:
@@ -117,7 +117,7 @@ From here on each section will focus on explaining aspects and components of ODD
 
 ### The Template Class
 
-The template class connects one odt template file to the data required to instantiate it into a integral odt document. It contains the mechanisms to populate the template document with the data, the instantiation mechanisms, and provides the methods to print the instance document to PDF or save any of the resulting files to disk.
+The template class connects one odt template file to the data required to instantiate it into a integral odt document. It contains the mechanisms to populate the template document with the data, the instantiation mechanisms, and provides the methods to print the instance document to pdf or save any of the resulting files to disk.
 
 To allow production of documents of different languages using the same data, the template class also contains a Locale object that is used to obtain localized representations of the data.
 
@@ -131,7 +131,9 @@ Each of those parameters and data sources must have an associated name so that t
 
 Each of these types of data are therefore stored in different map collections with String keys while the Template class provides the adequate methods to manipulate them such as <code>get</code>, <code>add</code>, <code>remove</code> and <code>clear</code> methods. It's worthy to mention that modifying the maps returned by the getter methods will not alter the maps within the Template class instance, forcing the use of the appropriate methods for the effect. It's is also important to note that the base data Objects within the getter returned map are not clones however, meaning any changes to their internal state is maintained.
 
-Both parameters and internal data objects in the collections are always referred as Object class instances to allow ODDJET to accept any kind of data. When populating the document their string representation is usually obtained via the toString() method. However, in order to deal with localization, the process begins by searching the object for a method matching getContent(Locale). If this method exists it is evaluated with the Template class object's locale and the toString() method applied to this call's result instead. If an <code>Exception</code> occurs while attempting to call the method then the original object is used as if the method didn't exist. In either case, if the resulting object is null an empty string is returned.
+Both parameters and internal data objects in the collections are always referred as Object class instances to allow ODDJET to accept any kind of data. When populating the document their string representation is usually obtained via the <code>toString()</code> method. However, in order to deal with localization, the process begins by searching the object for a <code>getContent(Locale)</code> method. If this method exists, it is evaluated with the Template class object's locale and the toString() method applied to this call's result instead. If the result is <code>null</code> a <code>getContent()</code> method is searched for and called with the same intent.* Only if an <code>Exception</code> occurs while attempting to call the <code>getContent(Locale)</code> method will <code>toString()</code> be called on the original object. If the final content or original object is null an empty string is returned.
+
+* Note that if the <code>getContent(Locale)</code> does not exist, <code>getContent()</code> is not used. This is to avoid replacing the original object when the fetched content is not <code>Locale</code> related.
 
 #### Instantiating, Converting to PDF and Saving
 
@@ -181,7 +183,7 @@ Note that, in these implementing classes, each call to <code>getData</code> retu
 
 User fields allow using a single variable data string in a template document. Through a user field this string may be used within the text or in conditions within conditional content structures.
 
-In the process of instantiating a template the names of the user fields within the template document are matched against the parameters supplied to the template class object. In case a match is found for a field's name, the matching object's string representation for the template's locale is obtained, as specified at the end of the [Template Class Data](#template-class-data) section, and set as its value.
+In the process of instantiating a template the names of the user fields within the template document are matched against the parameters supplied to the template class object. In case a match is found for a field's name, the matching object's string representation for the template's locale is obtained, as specified at the end of the [Template Data](#template-data) section, and set as its value.
 
 #### Data Parameter Name Matching
 
