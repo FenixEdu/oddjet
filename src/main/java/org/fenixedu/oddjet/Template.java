@@ -14,7 +14,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +29,7 @@ import org.fenixedu.oddjet.exception.DocumentSaveException;
 import org.fenixedu.oddjet.exception.IllegalTableCallRepresentationException;
 import org.fenixedu.oddjet.exception.IllegalTemplateDataSourceNameException;
 import org.fenixedu.oddjet.exception.IllegalTemplateParameterNameException;
-import org.fenixedu.oddjet.exception.OpenOfficeConnectionException;
+import org.fenixedu.oddjet.exception.PDFConversionException;
 import org.fenixedu.oddjet.table.TableCall;
 import org.fenixedu.oddjet.table.TableConfiguration;
 import org.fenixedu.oddjet.table.TableConfiguration.ContentDirection;
@@ -38,6 +37,9 @@ import org.fenixedu.oddjet.table.TableConfiguration.ContentStructure;
 import org.fenixedu.oddjet.table.TableConfiguration.LastBorderSourceSection;
 import org.fenixedu.oddjet.table.TableCoordinate;
 import org.fenixedu.oddjet.table.TableData;
+import org.odftoolkit.odfdom.converter.pdf.PdfConverter;
+import org.odftoolkit.odfdom.converter.pdf.PdfOptions;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.dom.OdfMetaDom;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
@@ -55,19 +57,14 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.artofsolving.jodconverter.DefaultDocumentFormatRegistry;
-import com.artofsolving.jodconverter.DocumentFormat;
-import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 import com.google.common.io.ByteStreams;
 
 /**
  * Contains a template file along with the teplate's data and locale, allowing creating instances of the original template
  * document with the contained data and locale, printing them to pdf and saving the results.
- * 
+ *
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
- * 
+ *
  */
 public class Template {
 
@@ -96,7 +93,7 @@ public class Template {
 
     /**
      * Constructs a Template with no associated template file and with the given locale.
-     * 
+     *
      * @param locale the template's locale.
      */
     public Template(Locale locale) {
@@ -105,7 +102,7 @@ public class Template {
 
     /**
      * Constructs a Template reading a template file from a given file path and with the given locale.
-     * 
+     *
      * @param filePath the path to the template file.
      * @param locale the template's locale.
      * @throws DocumentLoadException if the file at filePath could not be read.
@@ -117,7 +114,7 @@ public class Template {
 
     /**
      * Constructs a Template reading a template file from a given file path and with the default locale.
-     * 
+     *
      * @param filePath the path to the template file.
      * @throws DocumentLoadException if the file at filePath could not be read.
      */
@@ -127,7 +124,7 @@ public class Template {
 
     /**
      * Constructs a Template reading a given template file and with the given locale.
-     * 
+     *
      * @param file the template file.
      * @param locale the template's locale.
      * @throws DocumentLoadException if the file could not be read.
@@ -139,7 +136,7 @@ public class Template {
 
     /**
      * Constructs a Template reading a given template file and with the default locale.
-     * 
+     *
      * @param file the template file.
      * @throws SecurityException if read access to the file is denied.
      * @throws DocumentLoadException if the file could not be read.
@@ -150,7 +147,7 @@ public class Template {
 
     /**
      * Constructs a Template reading the template file from a given InputStream and with a given locale.
-     * 
+     *
      * @param fileStream the stream to read the template file.
      * @param locale the template's locale.
      * @throws DocumentLoadException if the file could not be read from the stream.
@@ -162,7 +159,7 @@ public class Template {
 
     /**
      * Constructs a Template reading the template file from a given InputStream and with the default locale.
-     * 
+     *
      * @param fileStream the stream to read the template file.
      * @throws DocumentLoadException if the file could not be read from the stream.
      */
@@ -172,7 +169,7 @@ public class Template {
 
     /**
      * Reads and sets the template document from the file at the given filePath.
-     * 
+     *
      * @param filePath the path to the template file.
      * @throws DocumentLoadException if the file at filePath could not be read.
      */
@@ -182,7 +179,7 @@ public class Template {
 
     /**
      * Reads and sets the template document from the given file.
-     * 
+     *
      * @param file the template file.
      * @throws DocumentLoadException if the file could not be read.
      */
@@ -197,7 +194,7 @@ public class Template {
 
     /**
      * Reads and sets the template document from the given InputStream.
-     * 
+     *
      * @param fileStream the stream to read the template file.
      * @throws DocumentLoadException if the file could not be read from the stream.
      */
@@ -220,7 +217,7 @@ public class Template {
 
     /**
      * Adds or replaces a template data parameter.
-     * 
+     *
      * @param name the name of the data parameter.
      * @param value the data object for this parameter.
      * @throws IllegalTemplateParameterNameException if the supplied name contains the attribute access operator ".".
@@ -240,7 +237,7 @@ public class Template {
 
     /**
      * Removes the template data parameter with the given name.
-     * 
+     *
      * @param name the name of the data parameter that is to be removed.
      */
     public void removeParameter(String name) {
@@ -249,7 +246,7 @@ public class Template {
 
     /**
      * Adds or replaces a template table's data source.
-     * 
+     *
      * @param name the name of the table to contain this data.
      * @param value the object containing the table data.
      * @throws IllegalTemplateDataSourceNameException if the supplied name does not conform to the table source name notation
@@ -269,7 +266,7 @@ public class Template {
 
     /**
      * Removes the template table's data source for the table with the given name.
-     * 
+     *
      * @param name the name of the table whose data source is to be removed.
      */
     public void removeTableDataSource(String name) {
@@ -299,7 +296,7 @@ public class Template {
 
     /**
      * Loads the template document from the stored document bytes, fills its variable content with the added data and returns it.
-     * 
+     *
      * @return the TextDocument object corresponding to an instance of this template.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      */
@@ -317,7 +314,7 @@ public class Template {
 
     /**
      * Instantiates the template through {@link #getInstance()} and attempts to save it as a file to the given path.
-     * 
+     *
      * @param path the path to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to the given path.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
@@ -334,14 +331,13 @@ public class Template {
 
     /**
      * Instantiates the template through {@link #getInstance()} and attempts to save it to the given file.
-     * 
+     *
      * @param file the file to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to the given file.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      */
     public void saveInstance(File file) throws DocumentLoadException, DocumentSaveException {
         TextDocument document = getInstance();
-
         try {
             document.save(file);
         } catch (Exception e) {
@@ -352,7 +348,7 @@ public class Template {
 
     /**
      * Instantiates the template through {@link #getInstance()} and attempts to save it to the given OutputStream.
-     * 
+     *
      * @param stream the OutputStream to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to the given OutputStream.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
@@ -369,7 +365,7 @@ public class Template {
 
     /**
      * Saves an instance of the template through {@link #saveInstance(OutputStream)} into a byte array and returns it.
-     * 
+     *
      * @return a byte array corresponding to an instance of this template.
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
@@ -383,46 +379,35 @@ public class Template {
     /**
      * Connects to an headless OpenOffice process, sends it an instance byte array, obtained through
      * {@link #getInstanceByteArray()} for convertion to pdf and returns a byte array with the obtained pdf print of the instance.
-     * 
+     *
      * @return a byte array corresponding to a pdf print of an instance of this template.
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
-     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     * @throws PDFConversionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public byte[] getInstancePDFByteArray() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public byte[] getInstancePDFByteArray() throws DocumentLoadException, DocumentSaveException, PDFConversionException {
         ByteArrayOutputStream ostream = new ByteArrayOutputStream();
-        ByteArrayInputStream istream = new ByteArrayInputStream(getInstanceByteArray());
-
         try {
-            OddjetConfiguration.ConfigurationProperties config = OddjetConfiguration.getConfiguration();
-
-            OpenOfficeConnection connection = new SocketOpenOfficeConnection(config.openOfficeHost(), config.openOfficePort());
-            connection.connect();
-
-            DefaultDocumentFormatRegistry registry = new DefaultDocumentFormatRegistry();
-            DocumentFormat outputFormat = registry.getFormatByFileExtension("pdf");
-            DocumentFormat inputFormat = registry.getFormatByFileExtension("odt");
-            OpenOfficeDocumentConverter converter = new OpenOfficeDocumentConverter(connection);
-            converter.convert(istream, inputFormat, ostream, outputFormat);
-
-            connection.disconnect();
-
+            PdfOptions options = PdfOptions.create();
+            PdfConverter.getInstance().convert(OdfTextDocument.loadDocument(new ByteArrayInputStream(getInstanceByteArray())),
+                    ostream, options);
             return ostream.toByteArray();
-        } catch (ConnectException e) {
-            throw new OpenOfficeConnectionException(e);
+        } catch (Exception e) {
+            throw new PDFConversionException(e);
         }
+
     }
 
     /**
      * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it as a file to the
      * given path.
-     * 
+     *
      * @param path the path to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
-     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     * @throws PDFConversionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public void saveInstancePDF(String path) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public void saveInstancePDF(String path) throws DocumentLoadException, DocumentSaveException, PDFConversionException {
         try {
             FileOutputStream ostream = new FileOutputStream(path);
             saveInstancePDF(ostream);
@@ -433,13 +418,13 @@ public class Template {
 
     /**
      * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it to the given file.
-     * 
+     *
      * @param file the file to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
-     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     * @throws PDFConversionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public void saveInstancePDF(File file) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public void saveInstancePDF(File file) throws DocumentLoadException, DocumentSaveException, PDFConversionException {
         FileOutputStream ostream;
         try {
             ostream = new FileOutputStream(file);
@@ -452,14 +437,13 @@ public class Template {
     /**
      * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it to the given
      * OutputStream.
-     * 
+     *
      * @param stream the OutputStream to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
-     * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
+     * @throws PDFConversionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public void saveInstancePDF(OutputStream stream) throws DocumentLoadException, DocumentSaveException,
-            OpenOfficeConnectionException {
+    public void saveInstancePDF(OutputStream stream) throws DocumentLoadException, DocumentSaveException, PDFConversionException {
         try {
             stream.write(getInstancePDFByteArray());
         } catch (IOException e) {
@@ -469,7 +453,7 @@ public class Template {
 
     /**
      * Returns the page count of an instance. To do this an instance must be fully generated, which is time-consuming.
-     * 
+     *
      * @return the page count of the template instance.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      */
@@ -485,22 +469,33 @@ public class Template {
     }
 
     private static void fillUserFields(TextDocument document, Map<String, Object> parameters, Locale locale) {
-        NodeList nodes;
+        NodeList declarations;
+        NodeList references;
+        Map<String, VariableField> alteredFields = new HashMap<String, VariableField>();
         try {
-            nodes = document.getContentRoot().getElementsByTagName("text:user-field-decl");
+            declarations = document.getContentRoot().getElementsByTagName("text:user-field-decl");
+            references = document.getContentRoot().getElementsByTagName("text:user-field-get");
         } catch (Exception e) {
             logger.error("Failed to create the file DOM while filling the user fields.");
-            e.printStackTrace();
             return;
         }
-        for (int i = 0; i < nodes.getLength(); i++) {
-            String userFieldName = nodes.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
+        for (int i = 0; i < declarations.getLength(); i++) {
+            String userFieldName = declarations.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
             VariableField var = document.getVariableFieldByName(userFieldName);
             try {
                 Object fieldValue = resolveAttributeChain(parameters, userFieldName);
                 var.updateField(translate(fieldValue, locale), null);
+                alteredFields.put(userFieldName, var);
             } catch (AttributeChainResolutionFailureException e) {
                 logger.error(e.getMessage());
+            }
+        }
+        for (int i = 0; i < references.getLength(); i++) {
+            String userFieldName = references.item(i).getAttributes().getNamedItem("text:name").getNodeValue();
+            VariableField var = alteredFields.get(userFieldName);
+            if (var != null) {
+                String fieldValue = var.getOdfElement().getAttribute("office:string-value");
+                references.item(i).setTextContent(fieldValue);
             }
         }
     }
@@ -510,7 +505,7 @@ public class Template {
      * attribute's value successively until there are no attributes in the chain returning the last object evaluated. The
      * attribute may be a key in a map, a public method (with 0 parameters) or field of the object, or an inaccessible field with
      * an accessible "get","is" or "has" method.
-     * 
+     *
      * @param root the root object for the chain
      * @param attributeChain the chain of attributes to resolve. The attribute names in the chain are expected to be separated by
      *            dots.
@@ -683,7 +678,7 @@ public class Template {
             if ((styleRCoord != null && (hRow + styleRCoord.getRow() > table.getRowCount() || hCol + styleRCoord.getColumn() > table
                     .getColumnCount()))
                     || (tp.getLastBorderSourceSection() == LastBorderSourceSection.BODY && (table.getRowCount() == hRow || table
-                            .getColumnCount() == hCol))) {
+                    .getColumnCount() == hCol))) {
                 logger.error("Table dimensions of " + table.getTableName()
                         + " are not suficient to specify the table cell format. Default cell style will be used.");
                 styleRCoord = null;
@@ -753,59 +748,59 @@ public class Template {
                     Cell cell =
                             tp.getContentDirection() == ContentDirection.VERTICAL ? table.getCellByPosition(X, Y) : table
                                     .getCellByPosition(Y, X);
-                    switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
-                    case STEP:
-                        // If there is a paragraph with content then don't do anything, else fall through
-                        if (cell.getParagraphByIndex(0, true) != null) {
-                            break;
-                        }
-                    case SKIP:
-                        // If there is a paragraph with content then just rollback the data to be reused and recheck for data overflows, else fall through
-                        if (cell.getParagraphByIndex(0, true) != null) {
-                            j--;
-                            if (tableSpaceY > 0) {
-                                if (tableDimY - Y < limitY - j) {
-                                    limitY = tableDimY - Y;
-                                    if (!overflowReported) {
-                                        logger.warn("Data category nr." + X
-                                                + " has more data than the allocated table space allows for in table '"
-                                                + table.getTableName() + "'. Remaining data will be ignored.");
-                                        overflowReported = true;
-                                    }
+                            switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
+                            case STEP:
+                                // If there is a paragraph with content then don't do anything, else fall through
+                                if (cell.getParagraphByIndex(0, true) != null) {
+                                    break;
                                 }
-                            }
-                            break;
-                        }
-                    case WRITE:
-                        nData++;
-                        switch (tp.getWriteBehavior()) {
-                        case APPEND:
-                            // Get the last paragraph and if it exists add the data's text to it, else fall through
-                            Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
-                            if (lastParagraph != null) {
-                                lastParagraph.getOdfElement().setTextContent(
-                                        lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
+                            case SKIP:
+                                // If there is a paragraph with content then just rollback the data to be reused and recheck for data overflows, else fall through
+                                if (cell.getParagraphByIndex(0, true) != null) {
+                                    j--;
+                                    if (tableSpaceY > 0) {
+                                        if (tableDimY - Y < limitY - j) {
+                                            limitY = tableDimY - Y;
+                                            if (!overflowReported) {
+                                                logger.warn("Data category nr." + X
+                                                        + " has more data than the allocated table space allows for in table '"
+                                                        + table.getTableName() + "'. Remaining data will be ignored.");
+                                                overflowReported = true;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            case WRITE:
+                                nData++;
+                                switch (tp.getWriteBehavior()) {
+                                case APPEND:
+                                    // Get the last paragraph and if it exists add the data's text to it, else fall through
+                                    Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
+                                    if (lastParagraph != null) {
+                                        lastParagraph.getOdfElement().setTextContent(
+                                                lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
+                                        break;
+                                    }
+                                case PREPEND:
+                                    // Get the first paragraph and if it exists add the data's text to it, else fall through
+                                    Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
+                                    if (firstParagraph != null) {
+                                        firstParagraph.getOdfElement().setTextContent(
+                                                translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
+                                        break;
+                                    }
+                                case OVERWRITE:
+                                    cell.removeTextContent();
+                                    cell.addParagraph(translate(dataCategory.get(j), locale));
+                                    break;
+                                default:
+                                    logger.error("Atempted to use unimplemented Write Behavior: " + tp.getWriteBehavior().name() + ".");
+                                }
                                 break;
+                            default:
+                                logger.error("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name() + ".");
                             }
-                        case PREPEND:
-                            // Get the first paragraph and if it exists add the data's text to it, else fall through
-                            Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
-                            if (firstParagraph != null) {
-                                firstParagraph.getOdfElement().setTextContent(
-                                        translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
-                                break;
-                            }
-                        case OVERWRITE:
-                            cell.removeTextContent();
-                            cell.addParagraph(translate(dataCategory.get(j), locale));
-                            break;
-                        default:
-                            logger.error("Atempted to use unimplemented Write Behavior: " + tp.getWriteBehavior().name() + ".");
-                        }
-                        break;
-                    default:
-                        logger.error("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name() + ".");
-                    }
                 }
             }
             // Create table relative automatic fields with table statistics
@@ -906,8 +901,8 @@ public class Template {
                 case RIGHT:
                 case BOTTOM:
                     border =
-                            table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
-                                    lastBorderOriginType);
+                    table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
+                            lastBorderOriginType);
                     break;
                 default:
                     break;
