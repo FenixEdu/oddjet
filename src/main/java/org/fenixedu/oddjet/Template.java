@@ -14,7 +14,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,11 +54,6 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.artofsolving.jodconverter.DefaultDocumentFormatRegistry;
-import com.artofsolving.jodconverter.DocumentFormat;
-import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 import com.google.common.io.ByteStreams;
 
 /**
@@ -390,27 +384,7 @@ public class Template {
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
     public byte[] getInstancePDFByteArray() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
-        ByteArrayOutputStream ostream = new ByteArrayOutputStream();
-        ByteArrayInputStream istream = new ByteArrayInputStream(getInstanceByteArray());
-
-        try {
-            OddjetConfiguration.ConfigurationProperties config = OddjetConfiguration.getConfiguration();
-
-            OpenOfficeConnection connection = new SocketOpenOfficeConnection(config.openOfficeHost(), config.openOfficePort());
-            connection.connect();
-
-            DefaultDocumentFormatRegistry registry = new DefaultDocumentFormatRegistry();
-            DocumentFormat outputFormat = registry.getFormatByFileExtension("pdf");
-            DocumentFormat inputFormat = registry.getFormatByFileExtension("odt");
-            OpenOfficeDocumentConverter converter = new OpenOfficeDocumentConverter(connection);
-            converter.convert(istream, inputFormat, ostream, outputFormat);
-
-            connection.disconnect();
-
-            return ostream.toByteArray();
-        } catch (ConnectException e) {
-            throw new OpenOfficeConnectionException(e);
-        }
+        return PrintUtils.getPDFByteArray(getInstance());
     }
 
     /**
@@ -459,7 +433,7 @@ public class Template {
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
     public void saveInstancePDF(OutputStream stream) throws DocumentLoadException, DocumentSaveException,
-    OpenOfficeConnectionException {
+            OpenOfficeConnectionException {
         try {
             stream.write(getInstancePDFByteArray());
         } catch (IOException e) {
@@ -589,6 +563,10 @@ public class Template {
     // Copied from https://github.com/mbosecke/pebble/blob/master/src/main/java/com/mitchellbosecke/pebble/node/expression/GetAttributeExpression.java#L43
     private static Member findMember(Object object, String attributeName) throws IllegalAccessException {
 
+        if (attributeName.isEmpty()) {
+            return null;
+        }
+
         Class<?> clazz = object.getClass();
 
         boolean found = false;
@@ -683,7 +661,7 @@ public class Template {
             if ((styleRCoord != null && (hRow + styleRCoord.getRow() > table.getRowCount() || hCol + styleRCoord.getColumn() > table
                     .getColumnCount()))
                     || (tp.getLastBorderSourceSection() == LastBorderSourceSection.BODY && (table.getRowCount() == hRow || table
-                    .getColumnCount() == hCol))) {
+                            .getColumnCount() == hCol))) {
                 logger.error("Table dimensions of " + table.getTableName()
                         + " are not suficient to specify the table cell format. Default cell style will be used.");
                 styleRCoord = null;
@@ -753,59 +731,59 @@ public class Template {
                     Cell cell =
                             tp.getContentDirection() == ContentDirection.VERTICAL ? table.getCellByPosition(X, Y) : table
                                     .getCellByPosition(Y, X);
-                            switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
-                            case STEP:
-                                // If there is a paragraph with content then don't do anything, else fall through
-                                if (cell.getParagraphByIndex(0, true) != null) {
-                                    break;
-                                }
-                            case SKIP:
-                                // If there is a paragraph with content then just rollback the data to be reused and recheck for data overflows, else fall through
-                                if (cell.getParagraphByIndex(0, true) != null) {
-                                    j--;
-                                    if (tableSpaceY > 0) {
-                                        if (tableDimY - Y < limitY - j) {
-                                            limitY = tableDimY - Y;
-                                            if (!overflowReported) {
-                                                logger.warn("Data category nr." + X
-                                                        + " has more data than the allocated table space allows for in table '"
-                                                        + table.getTableName() + "'. Remaining data will be ignored.");
-                                                overflowReported = true;
-                                            }
-                                        }
+                    switch (tp.getFillBehavior()) { //FIXME Fall through here allows cleaner code but it's a little less efficient.
+                    case STEP:
+                        // If there is a paragraph with content then don't do anything, else fall through
+                        if (cell.getParagraphByIndex(0, true) != null) {
+                            break;
+                        }
+                    case SKIP:
+                        // If there is a paragraph with content then just rollback the data to be reused and recheck for data overflows, else fall through
+                        if (cell.getParagraphByIndex(0, true) != null) {
+                            j--;
+                            if (tableSpaceY > 0) {
+                                if (tableDimY - Y < limitY - j) {
+                                    limitY = tableDimY - Y;
+                                    if (!overflowReported) {
+                                        logger.warn("Data category nr." + X
+                                                + " has more data than the allocated table space allows for in table '"
+                                                + table.getTableName() + "'. Remaining data will be ignored.");
+                                        overflowReported = true;
                                     }
-                                    break;
                                 }
-                            case WRITE:
-                                nData++;
-                                switch (tp.getWriteBehavior()) {
-                                case APPEND:
-                                    // Get the last paragraph and if it exists add the data's text to it, else fall through
-                                    Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
-                                    if (lastParagraph != null) {
-                                        lastParagraph.getOdfElement().setTextContent(
-                                                lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
-                                        break;
-                                    }
-                                case PREPEND:
-                                    // Get the first paragraph and if it exists add the data's text to it, else fall through
-                                    Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
-                                    if (firstParagraph != null) {
-                                        firstParagraph.getOdfElement().setTextContent(
-                                                translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
-                                        break;
-                                    }
-                                case OVERWRITE:
-                                    cell.removeTextContent();
-                                    cell.addParagraph(translate(dataCategory.get(j), locale));
-                                    break;
-                                default:
-                                    logger.error("Atempted to use unimplemented Write Behavior: " + tp.getWriteBehavior().name() + ".");
-                                }
-                                break;
-                            default:
-                                logger.error("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name() + ".");
                             }
+                            break;
+                        }
+                    case WRITE:
+                        nData++;
+                        switch (tp.getWriteBehavior()) {
+                        case APPEND:
+                            // Get the last paragraph and if it exists add the data's text to it, else fall through
+                            Paragraph lastParagraph = cell.getParagraphByReverseIndex(0, false);
+                            if (lastParagraph != null) {
+                                lastParagraph.getOdfElement().setTextContent(
+                                        lastParagraph.getTextContent() + translate(dataCategory.get(j), locale));
+                                break;
+                            }
+                        case PREPEND:
+                            // Get the first paragraph and if it exists add the data's text to it, else fall through
+                            Paragraph firstParagraph = cell.getParagraphByIndex(0, false);
+                            if (firstParagraph != null) {
+                                firstParagraph.getOdfElement().setTextContent(
+                                        translate(dataCategory.get(j) + firstParagraph.getTextContent(), locale));
+                                break;
+                            }
+                        case OVERWRITE:
+                            cell.removeTextContent();
+                            cell.addParagraph(translate(dataCategory.get(j), locale));
+                            break;
+                        default:
+                            logger.error("Atempted to use unimplemented Write Behavior: " + tp.getWriteBehavior().name() + ".");
+                        }
+                        break;
+                    default:
+                        logger.error("Atempted to use unimplemented Fill Behavior: " + tp.getFillBehavior().name() + ".");
+                    }
                 }
             }
             // Create table relative automatic fields with table statistics
@@ -906,8 +884,8 @@ public class Template {
                 case RIGHT:
                 case BOTTOM:
                     border =
-                    table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
-                            lastBorderOriginType);
+                            table.getCellByPosition(table.getColumnCount() - 1, table.getRowCount() - 1).getBorder(
+                                    lastBorderOriginType);
                     break;
                 default:
                     break;
