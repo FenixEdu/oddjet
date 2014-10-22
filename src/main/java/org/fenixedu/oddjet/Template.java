@@ -560,7 +560,7 @@ public class Template {
         return new ArrayList<String>(Arrays.asList(attributeChain.split(ATTRIBUTE_ACCESS_REGEX)));
     }
 
-    // Copied from https://github.com/mbosecke/pebble/blob/master/src/main/java/com/mitchellbosecke/pebble/node/expression/GetAttributeExpression.java#L43
+    // Copied and adapted from https://github.com/mbosecke/pebble/blob/master/src/main/java/com/mitchellbosecke/pebble/node/expression/GetAttributeExpression.java#L43
     private static Member findMember(Object object, String attributeName) throws IllegalAccessException {
 
         if (attributeName.isEmpty()) {

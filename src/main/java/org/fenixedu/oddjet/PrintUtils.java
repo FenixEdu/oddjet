@@ -15,7 +15,7 @@ import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConne
 import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 
 /**
- * Printing utilities. Allows
+ * Printing utilities. Contains methods to print TextDocuments.
  *
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
  *
