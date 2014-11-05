@@ -1,8 +1,7 @@
-package org.fenixedu.oddjet;
+package org.fenixedu.oddjet.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.net.ConnectException;
 
 import org.fenixedu.oddjet.exception.DocumentSaveException;
 import org.fenixedu.oddjet.exception.OpenOfficeConnectionException;
@@ -11,7 +10,6 @@ import org.odftoolkit.simple.TextDocument;
 import com.artofsolving.jodconverter.DefaultDocumentFormatRegistry;
 import com.artofsolving.jodconverter.DocumentFormat;
 import com.artofsolving.jodconverter.openoffice.connection.OpenOfficeConnection;
-import com.artofsolving.jodconverter.openoffice.connection.SocketOpenOfficeConnection;
 import com.artofsolving.jodconverter.openoffice.converter.OpenOfficeDocumentConverter;
 
 /**
@@ -29,18 +27,17 @@ public class PrintUtils {
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public static byte[] getPDFByteArray(TextDocument doc) throws DocumentSaveException, OpenOfficeConnectionException {
-        OddjetConfiguration.ConfigurationProperties config = OddjetConfiguration.getConfiguration();
-        if (doc != null && config.useOpenOfficeService()) {
-            OpenOfficeConnection connection = new SocketOpenOfficeConnection(config.openOfficeHost(), config.openOfficePort());
+    public static byte[] print(TextDocument doc, OpenOfficePrintingService service) throws DocumentSaveException,
+            OpenOfficeConnectionException {
+        if (service != null) {
+            OpenOfficeConnection connection = service.getConnection();
             try {
                 connection.connect();
-            } catch (ConnectException e) {
+            } catch (Exception e) {
                 throw new OpenOfficeConnectionException(e);
             }
 
             DefaultDocumentFormatRegistry registry = new DefaultDocumentFormatRegistry();
-            DocumentFormat outputFormat = registry.getFormatByFileExtension("pdf");
             DocumentFormat inputFormat = registry.getFormatByFileExtension("odt");
             OpenOfficeDocumentConverter converter = new OpenOfficeDocumentConverter(connection);
 
@@ -53,7 +50,7 @@ public class PrintUtils {
             ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
             out = new ByteArrayOutputStream();
 
-            converter.convert(in, inputFormat, out, outputFormat);
+            converter.convert(in, inputFormat, out, service.getOutputFormat());
 
             connection.disconnect();
 

@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.fenixedu.oddjet.exception.AttributeChainResolutionFailureException;
 import org.fenixedu.oddjet.exception.DocumentLoadException;
 import org.fenixedu.oddjet.exception.DocumentSaveException;
@@ -37,6 +38,8 @@ import org.fenixedu.oddjet.table.TableConfiguration.ContentStructure;
 import org.fenixedu.oddjet.table.TableConfiguration.LastBorderSourceSection;
 import org.fenixedu.oddjet.table.TableCoordinate;
 import org.fenixedu.oddjet.table.TableData;
+import org.fenixedu.oddjet.utils.OpenOfficePrintingService;
+import org.fenixedu.oddjet.utils.PrintUtils;
 import org.odftoolkit.odfdom.dom.OdfMetaDom;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
@@ -54,11 +57,9 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.google.common.io.ByteStreams;
-
 /**
  * Contains a template file along with the teplate's data and locale, allowing creating instances of the original template
- * document with the contained data and locale, printing them to pdf and saving the results.
+ * document with the contained data and locale, printing them and saving the results.
  *
  * @author Gil Lacerda (gil.lacerda@tecnico.ulisboa.pt)
  *
@@ -165,6 +166,26 @@ public class Template {
     }
 
     /**
+     * Constructs a Template from a template file byte array and with a given locale.
+     *
+     * @param fileContent the template file byte array.
+     * @param locale the template's locale.
+     */
+    public Template(byte[] fileContent, Locale locale) {
+        this.bytes = fileContent;
+        setLocale(locale);
+    }
+
+    /**
+     * Constructs a Template from a template file byte array and with the default locale.
+     *
+     * @param fileContent the template file byte array.
+     */
+    public Template(byte[] fileContent) {
+        this(fileContent, Locale.getDefault());
+    }
+
+    /**
      * Reads and sets the template document from the file at the given filePath.
      *
      * @param filePath the path to the template file.
@@ -196,13 +217,11 @@ public class Template {
      * @throws DocumentLoadException if the file could not be read from the stream.
      */
     public void setDocument(InputStream fileStream) throws DocumentLoadException {
-        ByteArrayOutputStream ostream = new ByteArrayOutputStream();
         try {
-            ByteStreams.copy(fileStream, ostream);
+            this.bytes = IOUtils.toByteArray(fileStream);
         } catch (IOException e) {
             throw new DocumentLoadException(e);
         }
-        this.bytes = ostream.toByteArray();
     }
 
     /**
@@ -376,19 +395,22 @@ public class Template {
 
     /**
      * Connects to an headless OpenOffice process, sends it an instance byte array, obtained through
-     * {@link #getInstanceByteArray()} for convertion to pdf and returns a byte array with the obtained pdf print of the instance.
+     * {@link #getInstanceByteArray()} for printing and returns a byte array with the obtained print of the instance.
      *
-     * @return a byte array corresponding to a pdf print of an instance of this template.
+     * @return a byte array corresponding to a print of an instance of this template
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public byte[] getInstancePDFByteArray() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
-        return PrintUtils.getPDFByteArray(getInstance());
+    public byte[] getInstancePrint() throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+        OddjetConfiguration.ConfigurationProperties config = OddjetConfiguration.getConfiguration();
+        OpenOfficePrintingService service =
+                new OpenOfficePrintingService(config.openOfficeHost(), config.openOfficePort(), config.openOfficeOutput());
+        return PrintUtils.print(getInstance(), service);
     }
 
     /**
-     * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it as a file to the
+     * Obtains a print of an instance through {@link #getInstancePrint()} and attempts to save it as a file to the
      * given path.
      *
      * @param path the path to save the instance document to.
@@ -396,35 +418,35 @@ public class Template {
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public void saveInstancePDF(String path) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public void saveInstancePrint(String path) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         try {
             FileOutputStream ostream = new FileOutputStream(path);
-            saveInstancePDF(ostream);
+            saveInstancePrint(ostream);
         } catch (FileNotFoundException e) {
             throw new DocumentSaveException(e);
         }
     }
 
     /**
-     * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it to the given file.
+     * Obtains a print of an instance through {@link #getInstancePrint()} and attempts to save it to the given file.
      *
      * @param file the file to save the instance document to.
      * @throws DocumentSaveException if the document can not be written to a byte array.
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public void saveInstancePDF(File file) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
+    public void saveInstancePrint(File file) throws DocumentLoadException, DocumentSaveException, OpenOfficeConnectionException {
         FileOutputStream ostream;
         try {
             ostream = new FileOutputStream(file);
-            saveInstancePDF(ostream);
+            saveInstancePrint(ostream);
         } catch (FileNotFoundException e) {
             throw new DocumentSaveException(e);
         }
     }
 
     /**
-     * Obtains a pdf print of an instance through {@link #getInstancePDFByteArray()} and attempts to save it to the given
+     * Obtains a print of an instance through {@link #getInstancePrint()} and attempts to save it to the given
      * OutputStream.
      *
      * @param stream the OutputStream to save the instance document to.
@@ -432,10 +454,10 @@ public class Template {
      * @throws DocumentLoadException if the document can not be created from the stored bytes.
      * @throws OpenOfficeConnectionException if it fails to connect to the expected headless OpenOffice process.
      */
-    public void saveInstancePDF(OutputStream stream) throws DocumentLoadException, DocumentSaveException,
+    public void saveInstancePrint(OutputStream stream) throws DocumentLoadException, DocumentSaveException,
             OpenOfficeConnectionException {
         try {
-            stream.write(getInstancePDFByteArray());
+            stream.write(getInstancePrint());
         } catch (IOException e) {
             throw new DocumentSaveException(e);
         }

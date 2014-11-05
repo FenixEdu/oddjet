@@ -15,8 +15,10 @@ public class OddjetConfiguration {
                 defaultValue = "8100")
         public Integer openOfficePort();
 
-        @ConfigurationProperty(key = "oddjet.openoffice.service", description = "Use OpenOffice service.", defaultValue = "true")
-        public Boolean useOpenOfficeService();
+        @ConfigurationProperty(key = "oddjet.openoffice.service.output", description = "Printing output format",
+                defaultValue = "pdf")
+        public String openOfficeOutput();
+
     }
 
     public static ConfigurationProperties getConfiguration() {
