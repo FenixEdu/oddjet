@@ -14,7 +14,7 @@ It includes tutorials and examples so you can learn how to use the Bennu Framewo
 
 ##Issue Tracking
 
-Issue Tracking for OddJet should be done using [GitHub Issues](https://github.com/FenixEdu/bennu/issues).
+Issue Tracking for OddJet is done in the [FenixEdu JIRA](https://jira.fenixedu.org/browse/ODDJET).
 
 
 ## Contribute
