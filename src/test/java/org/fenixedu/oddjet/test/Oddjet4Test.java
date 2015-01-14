@@ -20,7 +20,7 @@ public class Oddjet4Test {
     public void doIt() throws Exception {
         Template t = new DiplomaSupplement("./src/test/resources/diplomaSupplement.odt");
         t.getInstancePageCount();
-        byte[] bytes = t.getInstancePDFByteArray();
+        byte[] bytes = t.getInstancePrint();
         File f = new File("./target/copy.pdf");
         OutputStream o = new BufferedOutputStream(new FileOutputStream(f));
         o.write(bytes);

@@ -27,7 +27,7 @@ public class CategoricalTableData implements TableData {
     public List<List<Object>> getData(List<String> order) {
         List<List<Object>> data = new ArrayList<>();
         for (String key : order) {
-            if (key != null) {
+            if (key != null && categoricalData.get(key) != null) {
                 data.add(new ArrayList<Object>(categoricalData.get(key)));
             } else {
                 data.add(null);
