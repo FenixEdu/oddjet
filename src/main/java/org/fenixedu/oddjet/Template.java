@@ -225,7 +225,7 @@ public class Template {
     }
 
     /**
-     * @return a map with the current data parameters.
+     * @return a map with the current data parameters. This map cannot be used to add, modify or remove parameters.
      */
     public Map<String, Object> getParameters() {
         return new HashMap<String, Object>(dataParameters);
@@ -656,14 +656,17 @@ public class Template {
             try {
                 tc = new TableCall(table.getTableName());
             } catch (IllegalTableCallRepresentationException e) {
-                logger.warn("Table name " + tc.getTableName()
+                logger.warn("Table name " + table.getTableName()
                         + " does not conform to table call notation, assumed to be static table.");
                 continue;
             }
 
-            td = tableDataSources.get(tc.getTableDataSourceName());
+            String tableName = tc.getTableName();
+            String tableSourceName = tc.getTableDataSourceName();
+
+            td = tableDataSources.get(tableSourceName);
             if (td == null) {
-                logger.warn("No matching data source was found for table " + tc.getTableName() + ", assumed to be static table.");
+                logger.warn("No matching data source was found for table " + tableName + ", assumed to be static table.");
                 continue;
             }
 
@@ -705,10 +708,23 @@ public class Template {
             } else {
                 data = td.getData();
             }
-            if (data == null || data.isEmpty()) {
+
+            boolean isDataEmpty = true;
+            int depth = 0;
+            if (data != null) {
+                for (List<Object> cat : data) {
+                    depth = cat.size() > depth ? cat.size() : depth;
+                }
+                isDataEmpty = depth == 0;
+            }
+            Fields.createUserVariableField(document, tableSourceName + "_isEmpty", "" + isDataEmpty);
+            if (isDataEmpty) {
                 logger.warn("Data source for table '" + table.getTableName() + "' is empty, assumed to be a static table.");
                 continue;
             }
+            Fields.createUserVariableField(document, tableName + "_dataSize", "" + data.size());
+            Fields.createUserVariableField(document, tableName + "_dataDepth", "" + depth);
+
             int X, Y, i, j, startX, startY, limitX, limitY, tableDimX, tableSpaceX, tableDimY, tableSpaceY, nData = 0;
             if (tp.getContentDirection() == ContentDirection.VERTICAL) {
                 startX = hCol;
@@ -809,10 +825,9 @@ public class Template {
                 }
             }
             // Create table relative automatic fields with table statistics
-            String fieldName = tc.getTableName();
-            Fields.createUserVariableField(document, fieldName + "_nRow", "" + table.getRowCount());
-            Fields.createUserVariableField(document, fieldName + "_nCol", "" + table.getColumnCount());
-            Fields.createUserVariableField(document, fieldName + "_nData", "" + nData);
+            Fields.createUserVariableField(document, tableName + "_nRow", "" + table.getRowCount());
+            Fields.createUserVariableField(document, tableName + "_nCol", "" + table.getColumnCount());
+            Fields.createUserVariableField(document, tableName + "_nData", "" + nData);
 
             // Apply the correct formatting to each cell in the table
             if (cellStyles != null) {
