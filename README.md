@@ -6,11 +6,11 @@ OddJet is a Java templating API that works with Open Document Text format files 
 
 ## Getting Started
 
-To start developing using FenixEdu Academic you should take a look to our documentation site:
+To start developing using Oddjet you should take a look to our documentation site:
 
 [https://confluence.fenixedu.org/display/ODDJET/Welcome](https://confluence.fenixedu.org/display/ODDJET/Welcome)
 
-It includes tutorials and examples so you can learn how to use the Bennu Framework
+It includes tutorials and examples so you can learn how to use Oddjet
 
 ##Issue Tracking
 
